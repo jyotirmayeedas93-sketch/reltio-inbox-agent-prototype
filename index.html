@@ -4,80 +4,192 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Review DCR — Working Prototype</title>
-  <meta name="description" content="Working prototype of the Reltio Workflow Review DCR experience: field-level diffs, AI confidence with reasoning, per-field rejection with feedback.">
+  <meta name="description" content="Working prototype of the Reltio Workflow review flow: the reviewer starts on the entity profile, opens the DCR from the Workflow panel, reviews it with AI confidence, rejects fields with required comments and resubmits or approves. The Inbox shows the same task.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="design-system/tokens.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <a class="skip-link" href="#inbox-table">Skip to tasks</a>
+  <a class="skip-link" id="skip-link" href="#profile-main">Skip to main content</a>
 
-  <div class="demo-ribbon" role="note">
-    <span><strong>Working prototype</strong> · Reltio Workflow case study · demo data</span>
-    <button type="button" class="link-btn" id="reset-demo">Reset demo</button>
+  <!-- ===== Profile view: where the reviewer starts (Figma: "Profile Page 01 — Reviewer Viewing", 1752:18350) ===== -->
+  <div class="view view--profile" id="view-profile">
+    <!-- DS App Bar -->
+    <header class="appbar">
+      <span class="appbar__menu" data-icon="menu" data-size="24" aria-hidden="true"></span>
+      <span class="brand brand--appbar">RELTIO</span>
+      <span class="appbar__spacer"></span>
+      <div class="appbar__right" aria-hidden="true">
+        <span data-icon="notifications_fill" data-size="24"></span>
+        <span data-icon="application" data-size="24"></span>
+        <span class="avatar avatar--appbar" id="profile-user-avatar"></span>
+      </div>
+    </header>
+
+    <div class="profile-body">
+      <!-- DS Navigation Drawer (Mini, left) -->
+      <nav class="navrail navrail--left" aria-label="Applications">
+        <button type="button" class="navrail__toggle" aria-label="Expand navigation" aria-disabled="true" title="Not part of this prototype"><span data-icon="open_drawer" data-size="24"></span></button>
+        <ul class="navrail__items">
+          <li><a href="#profile" class="navrail__item is-active" aria-current="page" aria-label="Profile"><span data-icon="facet_attributes" data-size="24"></span></a></li>
+          <li><span class="navrail__item" role="link" aria-disabled="true" aria-label="Data quality (not part of this prototype)"><span data-icon="data_quality" data-size="24"></span></span></li>
+          <li><span class="navrail__item" role="link" aria-disabled="true" aria-label="Operational reports (not part of this prototype)"><span data-icon="operational_reports" data-size="24"></span></span></li>
+          <li><span class="navrail__item" role="link" aria-disabled="true" aria-label="Activity log (not part of this prototype)"><span data-icon="activity_log" data-size="24"></span></span></li>
+        </ul>
+      </nav>
+
+      <main class="profile-main" id="profile-main" tabindex="-1">
+        <!-- DS Tab Bar -->
+        <div class="entity-tabs" role="tablist" aria-label="Entity views" id="entity-tabs"></div>
+        <!-- Entity header -->
+        <div class="ent-head">
+          <div class="ent-head__id">
+            <span class="avatar avatar--entity" aria-hidden="true" id="ent-avatar"></span>
+            <div class="ent-head__stack">
+              <h1 class="ent-head__name" id="ent-name"></h1>
+              <p class="ent-head__meta"><span class="type-badge" id="ent-type"></span><span id="ent-id"></span></p>
+            </div>
+          </div>
+          <div class="ent-head__actions">
+            <span class="ent-head__results" id="ent-results"></span>
+            <button type="button" class="icon-btn" aria-label="Previous entity" aria-disabled="true" title="Not part of this prototype"><span data-icon="keyboard_arrow_left" data-size="20"></span></button>
+            <button type="button" class="icon-btn" aria-label="Next entity" aria-disabled="true" title="Not part of this prototype"><span data-icon="keyboard_arrow_right" data-size="20"></span></button>
+            <!-- Suggesting (Figma 830:22529): Cancel (DS Button/Outline) and Suggest (DS Button/Primary, disabled until a change) -->
+            <div class="suggest-actions" id="suggest-actions" hidden>
+              <button type="button" class="btn btn--outline" id="suggest-cancel">Cancel</button>
+              <button type="button" class="btn btn--primary" id="suggest-send" aria-describedby="suggest-n" disabled>Suggest</button>
+              <span class="sr-only" id="suggest-n"></span>
+            </div>
+            <!-- Mode menu (Figma 1856:35664): Viewing / Suggesting / Editing -->
+            <div class="mode" id="mode" data-id="mode"></div>
+            <button type="button" class="icon-btn" aria-label="More actions" aria-disabled="true" title="Not part of this prototype"><span data-icon="more_vert" data-size="20"></span></button>
+          </div>
+        </div>
+        <div class="profile-scroll">
+          <div class="profile-grid" id="profile-grid"></div>
+        </div>
+      </main>
+
+      <!-- Workflow panel (Figma: Workflow Panel) -->
+      <aside class="wf" id="wf-panel" aria-labelledby="wf-title">
+        <div class="wf__head">
+          <button type="button" class="icon-btn" id="wf-close" aria-label="Close Workflow panel"><span data-icon="close_24" data-size="24"></span></button>
+          <h2 class="wf__title" id="wf-title" tabindex="-1">Workflow</h2>
+          <span class="wf__divider" aria-hidden="true"></span>
+          <span class="wf__count" id="wf-count"></span>
+          <span class="wf__spacer"></span>
+          <button type="button" class="btn btn--text wf__filter-btn" id="wf-filter-btn" aria-expanded="false" aria-controls="wf-filters"><span data-icon="filter_alt" data-size="18"></span>Filter<span class="wf__badge" id="wf-filter-n" hidden></span></button>
+        </div>
+        <form class="wf-filters" id="wf-filters" role="search" aria-label="Filter workflows" hidden novalidate></form>
+        <div class="wf-chips" id="wf-chips" hidden></div>
+        <ul class="wf__list" id="wf-list" aria-label="Workflow requests for this entity"></ul>
+      </aside>
+
+      <!-- DS Navigation Drawer (Mini, right) -->
+      <nav class="navrail navrail--right" aria-label="Entity tools">
+        <ul class="navrail__items">
+          <li><button type="button" class="navrail__item" id="wf-toggle" aria-label="Workflow" aria-controls="wf-panel" aria-expanded="true"><span data-icon="workflow_inbox" data-size="24"></span></button></li>
+          <li><span class="navrail__item" role="button" aria-disabled="true" aria-label="Comments (not part of this prototype)"><span data-icon="dcr_comment" data-size="24"></span></span></li>
+          <li><span class="navrail__item" role="button" aria-disabled="true" aria-label="History (not part of this prototype)"><span data-icon="refresh_date" data-size="24"></span></span></li>
+        </ul>
+      </nav>
+    </div>
   </div>
 
+  <!-- ===== Inbox view (Figma: Inbox-07 / 08) — the same task, reached from the Inbox ===== -->
+  <div class="view view--inbox" id="view-inbox" hidden>
+
+  <!-- Header (Figma: Header, Search Bar, Header Right) -->
   <header class="app-header">
     <div class="app-header__left">
-      <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      <span class="hdr-icon" data-icon="dehaze" data-size="20" aria-hidden="true"></span>
       <span class="brand">RELTIO</span>
-      <span class="divider" aria-hidden="true"></span>
+      <span class="hdr-divider" aria-hidden="true"></span>
       <span class="app-title">Inbox</span>
     </div>
+    <div class="search" aria-hidden="true">
+      <span data-icon="search" data-size="18"></span>
+      <span class="search__placeholder">Quick search</span>
+    </div>
     <div class="app-header__right" aria-hidden="true">
-      <svg class="icon" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20h4"/></svg>
-      <svg class="icon" viewBox="0 0 24 24"><path d="M4 4h4v4H4zM10 4h4v4h-4zM16 4h4v4h-4zM4 10h4v4H4zM10 10h4v4h-4zM16 10h4v4h-4zM4 16h4v4H4zM10 16h4v4h-4zM16 16h4v4h-4z"/></svg>
-      <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="10" r="3"/><path d="M6.5 18.5c1.5-2 3.4-3 5.5-3s4 1 5.5 3"/></svg>
+      <span class="hdr-icon" data-icon="notifications" data-size="20"></span>
+      <span class="hdr-icon" data-icon="apps" data-size="20"></span>
+      <span class="avatar avatar--user" id="user-avatar"></span>
     </div>
   </header>
 
   <div class="app-body">
+    <!-- Left Panel -->
     <aside class="sidebar" aria-label="Task categories and filters">
       <nav aria-label="Task categories">
         <ul class="nav-list">
-          <li><a href="#" class="nav-item is-active" aria-current="page"><span>Inbox</span><span class="nav-count" id="inbox-count">9</span></a></li>
-          <li><a href="#" class="nav-item"><span>Team</span><span class="nav-count">63</span></a></li>
-          <li><a href="#" class="nav-item"><span>Sent</span><span class="nav-count">0</span></a></li>
-          <li><a href="#" class="nav-item"><span>All</span><span class="nav-count">72</span></a></li>
+          <li><a href="#" class="nav-item is-active" aria-current="page"><span data-icon="inbox" data-size="17"></span><span class="nav-item__label">Inbox</span><span class="nav-item__count" id="inbox-count">25</span></a></li>
+          <li><a href="#" class="nav-item"><span data-icon="people" data-size="17"></span><span class="nav-item__label">Team</span><span class="nav-item__count">63</span></a></li>
+          <li><a href="#" class="nav-item"><span data-icon="send" data-size="17"></span><span class="nav-item__label">Sent</span><span class="nav-item__count">0</span></a></li>
+          <li><a href="#" class="nav-item"><span data-icon="list" data-size="17"></span><span class="nav-item__label">All</span><span class="nav-item__count">72</span></a></li>
         </ul>
       </nav>
       <div class="filters" aria-hidden="true">
-        <p class="filters__title">Filters</p>
-        <div class="fake-input">Search &amp; add filters</div>
-        <p class="filters__adv">Advanced Search</p>
-        <p class="filters__hint">Search by entity attributes</p>
-        <p class="filters__label">Task type</p><div class="fake-select">All tasks</div>
-        <p class="filters__label">Step</p><div class="fake-select">All steps</div>
-        <p class="filters__label">DCR type</p><div class="fake-select">All values</div>
-        <p class="filters__label">Priority</p><div class="fake-select">All</div>
-        <p class="filters__label">Status</p><div class="fake-select">Open</div>
+        <div class="filters__group">
+          <p class="filters__title">Filters</p>
+          <div class="field field--search"><span data-icon="search" data-size="20"></span><span class="field__placeholder">Search &amp; add filters</span></div>
+        </div>
+        <div class="filters__adv">
+          <span class="filters__adv-link"><span data-icon="tune" data-size="17"></span>Advanced Search</span>
+          <span class="filters__hint">Search by entity attributes</span>
+        </div>
+        <div class="filters__list">
+          <div class="dropdown"><span class="field__label">Task type</span><div class="field"><span class="field__value">All tasks</span><span data-icon="arrow_drop_down" data-size="20"></span></div></div>
+          <div class="dropdown"><span class="field__label">Step</span><div class="field field--disabled"><span class="field__value">All steps</span><span data-icon="arrow_drop_down" data-size="20"></span></div></div>
+          <div class="dropdown"><span class="field__label">DCR type</span><div class="field field--disabled"><span class="field__value field__value--md">All</span><span data-icon="arrow_drop_down" data-size="20"></span></div></div>
+          <div class="dropdown"><span class="field__label">Entity type</span><div class="field"><span class="field__value">All</span><span data-icon="arrow_drop_down" data-size="20"></span></div></div>
+          <div class="dropdown"><span class="field__label">Relationship type</span><div class="field"><span class="field__value">All values</span><span data-icon="arrow_drop_down" data-size="20"></span></div></div>
+          <div class="dropdown"><span class="field__label">Priority</span><div class="field"><span class="field__value">All</span><span data-icon="arrow_drop_down" data-size="20"></span></div></div>
+          <div class="dropdown"><span class="field__label">Status</span><div class="field"><span class="field__value">All</span><span data-icon="arrow_drop_down" data-size="20"></span></div></div>
+        </div>
       </div>
     </aside>
 
+    <!-- Body: task bar + table -->
     <main class="main" id="main">
-      <div class="task-bar">
-        <span id="task-total" tabindex="-1">9 tasks</span>
-      </div>
-      <div class="tabs" role="presentation">
-        <span class="tab is-active">All</span>
-        <span class="tab">Authoring</span>
-        <span class="tab">Data Change Request Review</span>
-        <span class="tab">Potential Match Review</span>
-        <span class="tab">RDM Data Change Request Review</span>
+      <div class="taskbar">
+        <label class="cb">
+          <input type="checkbox" id="select-all" aria-label="Select all tasks on this page">
+          <span class="cb__box" aria-hidden="true"></span>
+        </label>
+        <span class="taskbar__count" id="selected-count" aria-live="polite">0 tasks selected</span>
+        <!-- Bulk review actions: shown once a task is selected. Icon buttons with tooltips (the actions aren't built yet). -->
+        <div class="bulk" id="bulk-actions" role="group" aria-label="Actions for selected tasks" hidden>
+          <span class="bulk__sep" aria-hidden="true"></span>
+          <span class="tip-wrap"><button type="button" class="icon-btn bulk__btn bulk__btn--reject" data-bulk="Reject" aria-labelledby="tip-bulk-reject"><span data-icon="highlight_off" data-size="20"></span></button><span class="tip" role="tooltip" id="tip-bulk-reject">Reject</span></span>
+          <span class="tip-wrap"><button type="button" class="icon-btn bulk__btn bulk__btn--approve" data-bulk="Approve" aria-labelledby="tip-bulk-approve"><span data-icon="check_circle_outline" data-size="20"></span></button><span class="tip" role="tooltip" id="tip-bulk-approve">Approve</span></span>
+          <span class="tip-wrap"><button type="button" class="icon-btn bulk__btn" data-bulk="Delete" aria-labelledby="tip-bulk-delete"><span data-icon="delete_outline" data-size="20"></span></button><span class="tip" role="tooltip" id="tip-bulk-delete">Delete</span></span>
+          <span class="tip-wrap"><button type="button" class="icon-btn bulk__btn" data-bulk="Archive" aria-labelledby="tip-bulk-archive"><span data-icon="archive" data-size="20"></span></button><span class="tip" role="tooltip" id="tip-bulk-archive">Archive</span></span>
+        </div>
+        <span class="taskbar__spacer"></span>
+        <span class="taskbar__rpp">Rows per page:</span>
+        <span class="rpp" aria-hidden="true"><span>25</span><span data-icon="arrow_drop_down" data-size="24"></span></span>
+        <span class="taskbar__divider" aria-hidden="true"></span>
+        <span class="taskbar__range" id="page-range">1–25 of 100</span>
+        <span class="taskbar__nav">
+          <button type="button" class="icon-btn" aria-label="Previous page" disabled><span data-icon="navigate_before" data-size="24"></span></button>
+          <button type="button" class="icon-btn" aria-label="Next page" aria-disabled="true" title="Paging is not part of this prototype"><span data-icon="navigate_next" data-size="24"></span></button>
+        </span>
       </div>
       <div class="table-wrap">
-        <table class="task-table" id="inbox-table" tabindex="-1">
-          <caption class="sr-only">Inbox tasks. Open the first task to review its data change request.</caption>
+        <table class="tasks" id="task-table" tabindex="-1">
+          <caption class="sr-only">Inbox tasks. The first task opens the review panel.</caption>
           <thead>
             <tr>
-              <th scope="col">Task type</th>
-              <th scope="col">Entities</th>
-              <th scope="col">Priority</th>
-              <th scope="col">Created by</th>
-              <th scope="col">Created on</th>
-              <th scope="col">Due date</th>
+              <th scope="col" class="col-type">Task type</th>
+              <th scope="col" class="col-ent">Entities</th>
+              <th scope="col" class="col-pri">Priority <span aria-hidden="true">↓</span></th>
+              <th scope="col" class="col-by">Created by</th>
+              <th scope="col" class="col-on">Created on <span aria-hidden="true">↓</span></th>
+              <th scope="col" class="col-st">Status</th>
+              <th scope="col" class="col-due">Due date <span aria-hidden="true">↓</span></th>
             </tr>
           </thead>
           <tbody id="task-rows"></tbody>
@@ -85,100 +197,123 @@
       </div>
     </main>
 
-    <!-- Review DCR side panel: opens over the Inbox, keeps the queue visible -->
+    <!-- DCR Review Panel (Figma: Inbox-08) -->
     <aside class="panel" id="review-panel" aria-labelledby="panel-title" hidden>
       <div class="panel__header">
-        <button type="button" class="icon-btn" id="close-panel" aria-label="Close review panel">
-          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
-        </button>
+        <button type="button" class="icon-btn" id="close-panel" aria-label="Close review panel"><span data-icon="close" data-size="18"></span></button>
         <h2 class="panel__title" id="panel-title" tabindex="-1">Data Change Request Review</h2>
-      </div>
-      <div class="panel__tabs" role="presentation">
-        <span class="panel-tab is-active">Information</span>
-        <span class="panel-tab">Additional details</span>
-        <span class="panel-tab">Comments</span>
-      </div>
-      <div class="panel__scroll">
-        <div class="entity">
-          <span class="entity__avatar" aria-hidden="true">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M4 20V5h10v15M14 9h6v11M7 8h2M7 11h2M7 14h2M10 8h1M10 11h1M10 14h1M16 12h2M16 15h2M3 20h18"/></svg>
-          </span>
-          <div>
-            <p class="entity__name" id="entity-name"></p>
-            <p class="entity__meta"><span class="entity__type" id="entity-type"></span> <span id="entity-id"></span></p>
-          </div>
+        <div class="panel__nav">
+          <button type="button" class="icon-btn icon-btn--muted" aria-label="Previous task" aria-disabled="true" title="This prototype has one reviewable task"><span data-icon="expand_less_left" data-size="18"></span></button>
+          <button type="button" class="icon-btn" aria-label="Next task" aria-disabled="true" title="This prototype has one reviewable task"><span data-icon="expand_less_right" data-size="18"></span></button>
         </div>
-        <div id="panel-summary"></div>
-        <ul class="changes" id="changes" aria-label="Proposed changes"></ul>
+        <button type="button" class="icon-btn icon-btn--action" aria-label="Reassign task" aria-disabled="true" title="Reassigning is not part of this prototype"><span data-icon="person_pin" data-size="18"></span></button>
+        <button type="button" class="icon-btn icon-btn--action" id="open-review" aria-label="Edit DCR (opens Review DCR)" aria-haspopup="dialog"><span data-icon="mode" data-size="18"></span></button>
       </div>
+      <!-- DS Tab Bar. Comments moved into the Review DCR overlay, so the panel has two tabs. -->
+      <div class="panel__tabs" role="tablist" aria-label="Task details" id="panel-tabs">
+        <button type="button" class="panel-tab is-active" role="tab" id="ptab-info-tab" aria-selected="true" aria-controls="ptab-info" tabindex="0">Information</button>
+        <button type="button" class="panel-tab" role="tab" id="ptab-details-tab" aria-selected="false" aria-controls="ptab-details" tabindex="-1">Additional details</button>
+      </div>
+      <div class="entity-header">
+        <span class="avatar avatar--entity" id="panel-avatar" aria-hidden="true"></span>
+        <div class="entity-header__text">
+          <p class="entity-header__name" id="panel-entity-name"></p>
+          <p class="entity-header__meta"><span class="type-badge" id="panel-entity-type"></span><span id="panel-entity-id"></span></p>
+        </div>
+      </div>
+      <div class="ptab" id="ptab-info" role="tabpanel" aria-labelledby="ptab-info-tab">
+      <div class="ai-summary" id="panel-summary"></div>
+      <ul class="changes" id="panel-changes" aria-label="Proposed changes"></ul>
+      <div class="more-info">
+        <button type="button" class="more-info__toggle" id="more-info-toggle" aria-expanded="false" aria-controls="more-info-body">
+          <span>More Information</span><span data-icon="arrow_drop_down" data-size="18"></span>
+        </button>
+        <dl class="more-info__body" id="more-info-body" hidden></dl>
+      </div>
+      </div>
+      <!-- Additional details: the profile's context, without leaving the Inbox -->
+      <div class="ptab ptab--details" id="ptab-details" role="tabpanel" aria-labelledby="ptab-details-tab" tabindex="0" hidden></div>
       <div class="panel__actions" id="panel-actions"></div>
     </aside>
   </div>
+  </div><!-- /view-inbox -->
 
-  <div class="sr-only" id="live" aria-live="polite" aria-atomic="true"></div>
-
-  <!-- Confirmation toast after the DCR is resolved -->
-  <div class="toast" id="toast" role="status" hidden>
-    <svg class="toast__icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16.5 9.5"/></svg>
-    <div class="toast__content">
-      <p class="toast__title" id="toast-title"></p>
-      <p class="toast__body" id="toast-text"></p>
-      <button type="button" class="link-btn toast__link" id="toast-view">View task</button>
+  <!-- Review DCR dialog (Figma: Inbox-09 … 12) -->
+  <dialog class="review" id="review-dialog" aria-labelledby="review-title">
+    <div class="review__header">
+      <button type="button" class="icon-btn" id="close-review" aria-label="Close Review DCR"><span data-icon="close" data-size="20"></span></button>
+      <h2 class="review__title" id="review-title">Review DCR</h2>
+      <div class="review__actions" id="review-actions"></div>
     </div>
-    <button type="button" class="toast__close" id="toast-close" aria-label="Dismiss">
-      <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg>
-    </button>
-  </div>
+    <div class="review__body">
+      <div class="review__main" id="review-main"></div>
+      <section class="rail" aria-labelledby="rail-title">
+        <h3 class="rail__title" id="rail-title">Comments (0)</h3>
+        <ol class="rail__list" id="rail-list"></ol>
+        <p class="rail__closed" id="rail-closed" hidden>This DCR is closed. Comments are kept as its history.</p>
+        <form class="rail__input" id="comment-form">
+          <label class="sr-only" for="comment-input">Write a comment</label>
+          <input type="text" id="comment-input" placeholder="Write a comment" autocomplete="off">
+          <button type="submit" class="send-btn" aria-label="Post comment"><span data-icon="send" data-size="14"></span></button>
+        </form>
+      </section>
+    </div>
+  </dialog>
 
-  <!-- Rejecting the whole request: still requires feedback, and points to the per-field path -->
-  <dialog class="how confirm" id="reject-dialog" aria-labelledby="reject-dcr-title">
-    <form id="reject-dcr-form" novalidate>
-      <h2 id="reject-dcr-title">Reject the whole request?</h2>
-      <p class="how__lede">All 10 changes go back to the requester. To return only the fields that need fixing, reject them one by one and approve the rest.</p>
-      <label class="reject-form__label" for="reject-dcr-comment">Feedback for the requester</label>
-      <textarea id="reject-dcr-comment" class="reject-form__input" rows="3" aria-describedby="reject-dcr-error"></textarea>
-      <p class="reject-form__error" id="reject-dcr-error" hidden>Add feedback so the requester knows what to fix.</p>
-      <div class="reject-form__actions">
-        <button type="button" class="btn btn--outline" id="reject-dcr-cancel">Cancel</button>
-        <button type="submit" class="btn btn--danger">Reject request</button>
+  <!-- Mandatory comment (Figma: Inbox-10 / 11) -->
+  <dialog class="comment-dlg" id="comment-dialog" aria-labelledby="comment-dlg-title" aria-describedby="comment-dlg-context">
+    <form method="dialog" id="comment-dlg-form" novalidate>
+      <h2 class="comment-dlg__title" id="comment-dlg-title">*Please provide a comment for your action</h2>
+      <p class="sr-only" id="comment-dlg-context"></p>
+      <label class="sr-only" for="comment-dlg-input">Comment (required)</label>
+      <textarea id="comment-dlg-input" class="comment-dlg__input" rows="4" required aria-required="true"></textarea>
+      <div class="comment-dlg__footer">
+        <button type="button" class="text-btn" id="comment-dlg-cancel">Cancel</button>
+        <button type="submit" class="text-btn text-btn--primary" id="comment-dlg-done" disabled>Done</button>
       </div>
     </form>
   </dialog>
 
-  <dialog class="how" id="how-dialog" aria-labelledby="how-title">
-    <div class="how__head">
-      <h2 id="how-title">How confidence signals work</h2>
-      <button type="button" class="icon-btn" id="how-close" aria-label="Close">
-        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
-      </button>
-    </div>
-    <p class="how__lede">Signals help you decide where to look. They aren't a verdict.</p>
-
-    <h3>What each signal means</h3>
-    <dl class="how__list">
-      <div><dt><span class="pill conf conf--high conf--static">High confidence</span></dt>
-        <dd>The proposed value is consistent with reference data and with the other fields on this record.</dd></div>
-      <div><dt><span class="pill conf conf--review conf--static">Needs review</span></dt>
-        <dd>Something about the change can't be verified or carries risk. Read the reasoning before you decide.</dd></div>
-      <div><dt><span class="pill conf conf--nosignal conf--static">Not enough signal</span></dt>
-        <dd>There's nothing to check this value against. It's your judgment alone, and the signal says so rather than guessing.</dd></div>
-    </dl>
-
-    <h3>What it does</h3>
-    <ul>
-      <li>Checks each proposed value on its own, against reference sources and the rest of the record.</li>
-      <li>Shows its reasoning on every field, so you can disagree with it.</li>
-    </ul>
-
-    <h3>What it never does</h3>
-    <ul>
-      <li>Approve, reject or edit a change. Every decision is yours.</li>
-      <li>Hide a field. Every proposed change is always listed.</li>
-    </ul>
-
-    <p class="how__note">In this prototype the signals and reasoning are demo data, not a live model.</p>
+  <!-- Confirm undo rejection (not in Figma; built from the comment dialog shell + DS tokens) -->
+  <dialog class="comment-dlg confirm-dlg" id="unreject-dialog" role="alertdialog" aria-labelledby="unreject-title" aria-describedby="unreject-desc">
+    <form method="dialog" id="unreject-form">
+      <div class="confirm-dlg__head">
+        <span class="confirm-dlg__icon" aria-hidden="true"></span>
+        <h2 class="comment-dlg__title confirm-dlg__title" id="unreject-title">Remove rejection?</h2>
+      </div>
+      <p class="confirm-dlg__text" id="unreject-desc"></p>
+      <div class="confirm-dlg__quote">
+        <p class="confirm-dlg__quote-label" id="unreject-quote-label">Comment that will be deleted</p>
+        <blockquote class="confirm-dlg__quote-text" id="unreject-quote" aria-labelledby="unreject-quote-label"></blockquote>
+      </div>
+      <div class="comment-dlg__footer">
+        <button type="button" class="text-btn" id="unreject-cancel">Cancel</button>
+        <button type="submit" class="text-btn text-btn--danger" id="unreject-confirm">Remove rejection</button>
+      </div>
+    </form>
   </dialog>
 
+  <!-- DS Snack Bar -->
+  <div class="toast" id="toast" role="status" hidden>
+    <span class="toast__icon" aria-hidden="true"></span>
+    <div class="toast__content">
+      <p class="toast__title" id="toast-title"></p>
+      <p class="toast__body" id="toast-text"></p>
+      <button type="button" class="link-btn" id="toast-view">View task</button>
+    </div>
+    <button type="button" class="icon-btn" id="toast-close" aria-label="Dismiss"><span data-icon="close" data-size="18"></span></button>
+  </div>
+
+  <div class="sr-only" id="live" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Prototype control (not part of the Figma design) -->
+  <div class="proto-chip" role="note">
+    <span>Prototype · demo data</span>
+    <a class="link-btn" id="switch-view" href="#inbox">Open Inbox</a>
+    <button type="button" class="link-btn" id="reset-demo">Reset demo</button>
+  </div>
+
+  <script src="icons.js"></script>
   <script src="data.js"></script>
   <script src="app.js"></script>
 </body>
