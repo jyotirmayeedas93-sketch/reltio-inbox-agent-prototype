@@ -86,10 +86,98 @@ These came up while exporting. None blocked the export, but each is worth fixing
 
 | Prototype role | DS default | Used instead |
 |---|---|---|
-| Primary button / selected nav | `surface.action` (3.92) | `surface.action-hover` (purple 600, 5.69) and `a11y.brand` on hover |
+| Primary button (Resubmit, Suggest) / selected nav / selected menu item | `button.primary.bg` = `surface.action` (3.92) | `button.primary.bg-hover` (purple 600, 5.69) and `a11y.brand` on hover, via `--app-primary-*` |
 | Purple text and links | `text.action` (3.92) | `a11y.brand` (8.52) |
 | Success / warning / error text | `text.success` / `warning` / `error` | `a11y.green` / `orange` / `red` |
 | Input outline | `border.default-light` (1.09) | `color.neutral.400` (4.49) |
 | Secondary text | `text.placeholder` (4.49) | `color.neutral.500` |
 
 The DS has no destructive button or modal, so those are composed from DS tokens (button metrics with error colours; surface, radius and type tokens).
+
+## Inbox-Redesign: token audit (Final end to end workflow page)
+
+The prototype follows frames Inbox-07 to Inbox-12 in the Inbox-Redesign file. Every value bound to a Build Design System token in those frames uses the same token in `styles.css`. Values Figma leaves unbound sit in one "Figma layer" block at the top of `styles.css`, so they can be fixed in Figma first.
+
+**1. The Inbox file is on an old library version.** Five variables it uses have since been renamed in Build Design System. They have the same key, so they are the same token:
+
+| Name in Inbox-Redesign | Current DS name | CSS token |
+|---|---|---|
+| Mapped/Border/default | Border/default light | `--border-default-light` |
+| Accessibility/Color | Accessible brand color | `--a11y-brand` |
+| Alias/Border Width/sm | Neutral/sm | `--border-width-sm` |
+| Alias/Border Radius/md | Neutral/md 2 | `--radius-md` |
+| Alias/Border Radius/round | Neutral/round | `--radius-round` |
+
+Two values are also stale. Surface/disabled is #f4f4f4 in the Inbox file but #ecedee in the DS, and Border/default light is #ecedee there but #f5f5f5 in the DS. The prototype uses the current DS values, so dividers and grey pills look slightly different from the Figma canvas. To bring Figma in line, accept the library updates in Inbox-Redesign.
+
+The renames also explain the odd DS names. Groups such as "Border Width" and "Border Radius" were renamed to "Neutral", so Figma suffixed the collisions with " 2".
+
+**2. Values that are unbound in Figma** (no token on the canvas):
+- **Text:** 1,000+ text layers use raw sizes: 10, 10.5, 11, 11.5, 12, 12.5, 13, 14, 15, 16, 17, 18 and 20px. Only Body/sm, Body/xsm, Body/md and their semibold variants are applied as styles.
+- **Colours:**
+  - The "Updated" tag (#996b14 on #fff5e0). The DS has no amber, and #996b14 is 4.34:1, so the prototype darkens it to #8a5e0f.
+  - Soft surfaces #fbfbfc, #f9f9fb and #f5f5f7 are mapped to `--color-neutral-25`.
+  - The header divider #d9d9d9 is mapped to `--border-disabled`.
+  - Icon fills #323232 (84 layers) are mapped to `--icon-default`.
+  - The overlay #3b3b3b @ 40% is mapped to neutral 800 @ 40%.
+- **Review DCR dialog header buttons:** Reject (#cc4d4d / #b82929) and Approve (#218747) are raw values. The right panel uses Accessible red and green, and the prototype uses those in both places.
+- **Required-comment dialog:** this comes from a different, Material-style library with raw colours and Roboto-style text styles. It is rebuilt with DS tokens.
+
+**3. Content inconsistencies between frames:**
+- The panel shows "Groton-Mystic Falcons / 118C6dGI" while the dialog shows "Groton-Mystic Falcons Ltd / 0KY7eHf". The prototype uses the dialog values.
+- The summary text and tally are static in Figma ("7 clear · 2 no signal" in the panel, "1 no signal" in the dialog, "7 updated"). The prototype derives them from the 8 fields.
+- "Comments (0)" is shown while two comments are listed.
+- AI reasoning in the dialog uses raw #9e6b0f, while the panel uses Accessible orange.
+
+**4. AA swaps.** Text/action (#a259fb), used on tabs, links and DONE, is 3.92:1. Text/placeholder is 4.49:1. Both are swapped for `--a11y-brand` and `--color-neutral-500` where they carry text.
+
+## Profile page: design-system mapping (Profile Page 01 — Reviewer Viewing, 1752:18350)
+
+The reviewer's starting page was inventoried in Figma (component instances, their library and variable bindings) and rebuilt in HTML from Build Design System tokens. Each section falls into one bucket:
+
+| Section | Figma source | In the prototype |
+|---|---|---|
+| App bar, nav rails, entity tabs, avatar | Library: App Bar, Navigation Drawer (Mini), Tab Bar, Avatar | **Already DS.** Rebuilt with `--tab-*`, `--avatar-*`, Surface/action-hover light for the active rail item |
+| "Viewing" button, Effective date field | Library: Button (outline), Field | **Already DS.** `--button-outline-*`, `--field-*` |
+| Entity header, attribute cards, segments table, hierarchy tree | Local "Profile /" components bound to DS variables (Grey/600, Grey/800, Blue/50, Blue/500, Surface/information, Border/default light) | **Composed from DS tokens.** Same variables in CSS |
+| Workflow panel | Local component; header and text buttons come from a Material library ("Button / Text / Primary", Roboto 14) | **Composed from DS primitives.** DS Button (transparent variant) for Review DCR / View DCR / Add, DS Field for due date, priority and assignee |
+| Shadows | Material effects (M3 Elevation 3, app bar, rail) | **No DS token.** Kept as `--fig-shadow-*` in the Figma layer |
+
+AA swaps on this page: Text/action (3.92:1) on "68,441 Search results", Viewing, Show more and the panel buttons uses `--a11y-brand`. Text/placeholder (4.49:1) on Entity ID, request labels and due dates uses `--color-neutral-500`. Text/success (2.9:1) on "Reviewed" uses `--a11y-green`. The 3px priority bar keeps Icon/error, because it isn't text and "High" is also announced.
+
+### Review DCR additions (not in Figma)
+- **Reviewer-added value row:** background `--color-neutral-25` (Grey/25, the lightest grey in the DS). It uses the DS `delete_outline` icon in place of +.
+- **Values already in the request** are shown with the DS Menu item disabled tokens (`--menu-item-bg-disabled`, `--menu-item-text-disabled`, `--menu-item-border-disabled`).
+- **Tags:** Edited (Surface/information) is a requester change. Updated (the amber Figma value) is a reviewer change. The header tally now says "Edited" instead of Figma's "Updated".
+- **Add attribute:** the picker is the DS Menu (same tokens as the row dropdowns) and lists the profile attributes that aren't in the DCR. Each added attribute uses the same Grey/25 row, with + and `delete_outline`.
+- **Field messages:** the DS Field has no error or warning variant (only Default, Hover, Focus and Disabled), so messages are built from semantic tokens. They sit under the box in Body/xsm with the DS `error_outline` icon.
+  - **Error:** Accessible red text and border, plus `aria-invalid`. Errors block Approve and Resubmit.
+  - **Note** (the value is the same as the profile): Accessible orange. It doesn't block anything.
+- **Validation rules:** phone, website, whole number (employees), letters only (city), digits and hyphens (Tax ID), digits only (Data Provider Organization ID). A requester value can't be left empty.
+- **Workflow card fields:** Priority and Assigned to use the DS Field + Menu dropdown. The priority bar is Icon/error for High, Icon/warning for Medium and Icon/success for Low.
+- **Date picker:** the Build DS has no date picker (its pages are Button, Label, Field, Input, Menu, Checkbox, Radio Button, Switch, Text Area, Tab Bar, Button Group, Link, Breadcrumb, Avatar, Tag, Pill, Loader, Badge, Progress Bar, Snack Bar, Carousel and Table). It is composed from DS parts:
+  - the Field as the trigger, with the `date_range` icon;
+  - the Menu surface tokens for the popover;
+  - icon buttons for month navigation;
+  - Menu item hover tokens for days, with the AA-safe primary purple for the selected day and a Border/action ring for today.
+  It is a good candidate to add to the DS.
+- **Workflow filter:**
+  - The Filter button is the DS transparent Button with the DS `filter_alt` icon. Its count bubble uses the Badge tokens (radius and text) on the AA-safe purple.
+  - Search is a DS Field with the `search` icon, and the six filters are DS Menu dropdowns. Workflow types that don't exist on the profile use the Menu item disabled tokens.
+  - Active filters are pills (Pill height and radius) on Surface/action-hover light.
+  - Apply is the DS primary Button and Clear all is the transparent Button.
+- **View DCR (history):** the Review DCR overlay in read-only mode.
+  - The outcome is a pill (Surface/success + Accessible green) in place of the action buttons.
+  - Rounds are cards (Border/default, radius lg) with a coloured top edge: Accessible green for approval, Accessible red for sent back or rejected, Icon/information for requester rounds. The round number uses the Badge size and radius.
+  - The per-field timeline uses Border/default for its line, with dots in Icon/information (proposed or resubmitted), Accessible orange (updated by the reviewer), Accessible red (sent back) and Accessible green (approved).
+  - The highlighted comment gets an Accessible-brand outline. Approval comments use Surface/success.
+  - Comment timestamps now use the AA-safe grey (Text/placeholder was 3.8:1 on tinted cards).
+- **Profile mode menu and Suggesting** (Figma "Profile Page 02 — Select suggesting" 1856:35664 and "Profile Page 04 — Suggest Mode" 830:22529):
+  - The mode button is the DS outline Button. It works as a select-only combobox over a DS Menu, right-aligned and at least 215px wide as in Figma.
+  - The menu shadow is Figma's Drop Shadow/400. The DS has no elevation token for it, so it's written inline.
+  - The selected menu item uses the AA-safe purple 600 (5.69:1). The DS `menu.item.bg-selected` (`surface.action`, 3.92:1 with white) fails AA. This applies to every dropdown in the prototype.
+  - Cancel is the DS outline Button (the DS has no separate secondary variant), and Suggest (Save in Editing) is the DS primary Button. It uses the Button disabled tokens until something changes.
+  - Show more / Show less stays the Figma text link (Text/action, swapped to the Accessible brand colour), with the DS focus ring.
+  - Editable values are DS Fields with Body/md text, and Company Type is a DS Menu dropdown on Grey/25, as in Figma. Row actions use the DS `add` and `delete_outline` icons, and deleted values get the Deleted tag (Surface/error + Accessible red).
+  - The Suggesting icon is Material Icons `rate_review` (outlined), because Figma's icon assets couldn't be exported from this session.
+- **Inbox bulk actions:** icon buttons in the selection bar (DS icon button, 24px target), shown once a task is selected. Reject and Approve use the Accessible red and green, and Delete and Archive use Icon/default. They're separated from the count by a short Grey/300 divider. The DS has no Tooltip, so the tooltip is composed from Grey/800, Text/on-action, Body/xsm and radius sm. It shows on hover and keyboard focus, and Esc hides it. Icons are Material `highlight_off`, `check_circle_outline`, `delete_outline` (DS) and `archive` (outlined).
