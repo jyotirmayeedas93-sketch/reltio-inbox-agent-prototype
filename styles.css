@@ -210,6 +210,23 @@ p, h2, h3, ol, ul, dl, dd { margin: 0; }
 .filters__adv-link { display: inline-flex; align-items: center; gap: 9px; padding: 6px var(--scale-100); font: var(--fig-type-13-semibold); color: var(--color-purple-600); }
 .filters__hint { font: var(--fig-type-12-regular); color: var(--text-body); }
 .filters__list { display: flex; flex-direction: column; gap: var(--scale-500); padding: var(--scale-500) 15px; }
+/* Working Inbox filters: DS Field triggers + DS Menu, the same parts as the Workflow filters */
+.filters__dd { position: relative; }
+.filters__search input::-webkit-search-cancel-button { cursor: pointer; }
+.filters__adv { cursor: default; }
+.inbox-chips { border-top: 0; border-bottom: var(--border-width-sm) solid var(--border-default-light); padding-left: var(--scale-500); }
+
+/* Entity names in the task table: one line, truncated, full name on hover */
+.cell-ent { display: flex; align-items: center; min-width: 0; }
+.cell-ent__pill { flex: 0 1 auto; min-width: 0; }
+.cell-ent__text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tasks td.tasks__empty { height: auto; padding: var(--scale-800) var(--scale-500); white-space: normal; }
+.tasks__empty p { margin-bottom: var(--scale-200); font: var(--typography-body-md); color: var(--text-headings); }
+
+/* Review panel: a change the reviewer was sent to (agent "open the Tax ID change") */
+.chg.is-flash { animation: field-flash 1.6s ease-out; }
+@keyframes field-flash { 0%, 40% { box-shadow: inset var(--border-width-lg) 0 0 var(--border-focus), 0 0 0 var(--border-width-lg) var(--surface-action-hover-light); } 100% { box-shadow: none; } }
+.pd__note--solo { padding: var(--scale-400); }
 .dropdown { display: flex; flex-direction: column; gap: var(--scale-200); }
 .field__label { font: var(--field-label-typography); color: var(--field-label-text); }
 .field {

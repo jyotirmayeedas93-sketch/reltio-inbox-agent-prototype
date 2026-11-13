@@ -125,30 +125,22 @@
     <aside class="sidebar" aria-label="Task categories and filters">
       <nav aria-label="Task categories">
         <ul class="nav-list">
-          <li><a href="#" class="nav-item is-active" aria-current="page"><span data-icon="inbox" data-size="17"></span><span class="nav-item__label">Inbox</span><span class="nav-item__count" id="inbox-count">25</span></a></li>
-          <li><a href="#" class="nav-item"><span data-icon="people" data-size="17"></span><span class="nav-item__label">Team</span><span class="nav-item__count">63</span></a></li>
+          <li><a href="#" class="nav-item is-active" aria-current="page"><span data-icon="inbox" data-size="17"></span><span class="nav-item__label">Inbox</span><span class="nav-item__count" id="inbox-count"></span></a></li>
+          <li><a href="#" class="nav-item"><span data-icon="people" data-size="17"></span><span class="nav-item__label">Team</span><span class="nav-item__count" id="team-count"></span></a></li>
           <li><a href="#" class="nav-item"><span data-icon="send" data-size="17"></span><span class="nav-item__label">Sent</span><span class="nav-item__count">0</span></a></li>
-          <li><a href="#" class="nav-item"><span data-icon="list" data-size="17"></span><span class="nav-item__label">All</span><span class="nav-item__count">72</span></a></li>
+          <li><a href="#" class="nav-item"><span data-icon="list" data-size="17"></span><span class="nav-item__label">All</span><span class="nav-item__count" id="all-count"></span></a></li>
         </ul>
       </nav>
-      <div class="filters" aria-hidden="true">
+      <div class="filters" role="search" aria-labelledby="filters-title">
         <div class="filters__group">
-          <p class="filters__title">Filters</p>
-          <div class="field field--search"><span data-icon="search" data-size="20"></span><span class="field__placeholder">Search &amp; add filters</span></div>
+          <h2 class="filters__title" id="filters-title">Filters</h2>
+          <div class="field wf-search filters__search"><span data-icon="search" data-size="20"></span><label class="sr-only" for="if-q">Search tasks</label><input type="search" id="if-q" placeholder="Search &amp; add filters" autocomplete="off"></div>
         </div>
-        <div class="filters__adv">
+        <div class="filters__adv" aria-hidden="true" title="Not part of this prototype">
           <span class="filters__adv-link"><span data-icon="tune" data-size="17"></span>Advanced Search</span>
           <span class="filters__hint">Search by entity attributes</span>
         </div>
-        <div class="filters__list">
-          <div class="dropdown"><span class="field__label">Task type</span><div class="field"><span class="field__value">All tasks</span><span data-icon="arrow_drop_down" data-size="20"></span></div></div>
-          <div class="dropdown"><span class="field__label">Step</span><div class="field field--disabled"><span class="field__value">All steps</span><span data-icon="arrow_drop_down" data-size="20"></span></div></div>
-          <div class="dropdown"><span class="field__label">DCR type</span><div class="field field--disabled"><span class="field__value field__value--md">All</span><span data-icon="arrow_drop_down" data-size="20"></span></div></div>
-          <div class="dropdown"><span class="field__label">Entity type</span><div class="field"><span class="field__value">All</span><span data-icon="arrow_drop_down" data-size="20"></span></div></div>
-          <div class="dropdown"><span class="field__label">Relationship type</span><div class="field"><span class="field__value">All values</span><span data-icon="arrow_drop_down" data-size="20"></span></div></div>
-          <div class="dropdown"><span class="field__label">Priority</span><div class="field"><span class="field__value">All</span><span data-icon="arrow_drop_down" data-size="20"></span></div></div>
-          <div class="dropdown"><span class="field__label">Status</span><div class="field"><span class="field__value">All</span><span data-icon="arrow_drop_down" data-size="20"></span></div></div>
-        </div>
+        <div class="filters__list" id="if-list"></div>
       </div>
     </aside>
 
@@ -170,17 +162,18 @@
         </div>
         <span class="taskbar__spacer"></span>
         <span class="taskbar__rpp">Rows per page:</span>
-        <span class="rpp" aria-hidden="true"><span>25</span><span data-icon="arrow_drop_down" data-size="24"></span></span>
+        <span class="rpp" aria-hidden="true"><span>50</span><span data-icon="arrow_drop_down" data-size="24"></span></span>
         <span class="taskbar__divider" aria-hidden="true"></span>
-        <span class="taskbar__range" id="page-range">1–25 of 100</span>
+        <span class="taskbar__range" id="page-range"></span>
         <span class="taskbar__nav">
           <button type="button" class="icon-btn" aria-label="Previous page" disabled><span data-icon="navigate_before" data-size="24"></span></button>
           <button type="button" class="icon-btn" aria-label="Next page" aria-disabled="true" title="Paging is not part of this prototype"><span data-icon="navigate_next" data-size="24"></span></button>
         </span>
       </div>
+      <div class="wf-chips inbox-chips" id="inbox-chips" hidden></div>
       <div class="table-wrap">
         <table class="tasks" id="task-table" tabindex="-1">
-          <caption class="sr-only">Inbox tasks. The first task opens the review panel.</caption>
+          <caption class="sr-only">Inbox tasks. Each data change request opens the review panel.</caption>
           <thead>
             <tr>
               <th scope="col" class="col-type">Task type</th>
@@ -203,8 +196,8 @@
         <button type="button" class="icon-btn" id="close-panel" aria-label="Close review panel"><span data-icon="close" data-size="18"></span></button>
         <h2 class="panel__title" id="panel-title" tabindex="-1">Data Change Request Review</h2>
         <div class="panel__nav">
-          <button type="button" class="icon-btn icon-btn--muted" aria-label="Previous task" aria-disabled="true" title="This prototype has one reviewable task"><span data-icon="expand_less_left" data-size="18"></span></button>
-          <button type="button" class="icon-btn" aria-label="Next task" aria-disabled="true" title="This prototype has one reviewable task"><span data-icon="expand_less_right" data-size="18"></span></button>
+          <button type="button" class="icon-btn icon-btn--muted" aria-label="Previous task" aria-disabled="true" title="Not part of this prototype"><span data-icon="expand_less_left" data-size="18"></span></button>
+          <button type="button" class="icon-btn" aria-label="Next task" aria-disabled="true" title="Not part of this prototype"><span data-icon="expand_less_right" data-size="18"></span></button>
         </div>
         <button type="button" class="icon-btn icon-btn--action" aria-label="Reassign task" aria-disabled="true" title="Reassigning is not part of this prototype"><span data-icon="person_pin" data-size="18"></span></button>
         <button type="button" class="icon-btn icon-btn--action" id="open-review" aria-label="Edit DCR (opens Review DCR)" aria-haspopup="dialog"><span data-icon="mode" data-size="18"></span></button>
@@ -315,6 +308,7 @@
 
   <script src="icons.js"></script>
   <script src="data.js"></script>
+  <script src="queue.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

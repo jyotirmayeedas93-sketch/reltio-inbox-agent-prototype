@@ -1,6 +1,6 @@
 # Inbox agent prototype: build plan
 
-Draft for review · 13 Nov 2026 · status: not started
+13 Nov 2026 · status: P0 and P1 done; P2 next
 
 The Inbox agent is a **concept**: a scripted chat panel docked in the Reltio Inbox that helps a
 Data Steward Manager clear a batch of DCRs in one sitting. It prepares, explains and drafts; the
@@ -171,7 +171,7 @@ Built so every number in the Review Flow doc comes from one list.
 | Group | DCRs | Signals | Used in |
 |---|---|---|---|
 | Groton-Mystic Falcons Ltd (existing DCR) | 1 | Needs review (Company Type), Not enough signal (Tax ID) | Stage 4, 5B, 5C. Due today |
-| Country code US → USA | 7 | 6 high; 1 needs review ("another source still says US") | Brief, 5A. One of the 6 changes mid-run |
+| Country code US → USA | 7 | 6 high; 1 needs review (another source on that profile says CA, Canada) | Brief, 5A. One of the 6 changes mid-run |
 | Address changes | 5 | All high | "Summarise these 5 address changes" |
 | Spanish address tasks | 4 | All high | "Assign the Spanish address tasks to Maria" |
 | Other routine DCRs | 7 | All high; one already resolved by Arjun Rao | "Approve everything", one due today |
@@ -337,7 +337,7 @@ Each phase ends with its gate (section 9). Nothing in a later phase starts until
 2. Write `PLAN.md`. **This file.**
 3. Settle the open items needed before P1 (Q1 to Q5). **Done**, see D20 to D25.
 4. Rewrite `README.md` header: concept, demo data, original repo link. Update `<title>` and the
-   proto chip to "Concept · demo data".
+   proto chip to "Concept · demo data". **Done.**
 
 Gate: Jyotirmayee approves this plan.
 
@@ -362,6 +362,27 @@ No visible agent yet. The Inbox works as today, but from the new queue.
 
 Gate: the original README walkthrough (steps 1 to 13) still passes on Groton-Mystic; any other
 DCR opens and resolves; counts match the queue.
+
+**Done, 13 Nov.** How it was built, where it differs from the steps above:
+
+- Step 3: `state.dcrs[id]` holds `fields, comments, extra, touched, newAttrs, resolved`. Those
+  six keys on `state` are accessors onto `state.dcrs[state.current]`, so the review code reads
+  `state.fields` as before and works on whichever DCR is open. `dcr` is a proxy onto the open
+  DCR's header copy. The profile page always uses the Figma DCR (`MAIN`).
+- Add attribute and Additional details need profile data, so only Groton-Mystic has them; other
+  DCRs say "Profile details for … aren't part of this demo."
+- Step 5: filters live in the Figma sidebar and apply on pick. A `group` filter has no sidebar
+  control; only the agent sets it, and it shows as a chip.
+- Step 7: the bridge has `state, tasks, today, selection, setInboxFilters, clearInboxFilters,
+  openTask, announce, render`. `applyApproval`, `rejectField`, `assign` come with the phases
+  that use them (P3 to P5).
+- Counts: Inbox 31 (25 DCRs + 6 others), Team 0 until P5 assigns tasks away, All 31.
+- Groton-Mystic keeps its Figma created date (Jan 2025); only its due date moved to the demo date.
+
+Checked in the browser: queue numbers (25 / 22 / 3 / 14 / 2 / 7 with 6 high), keyboard filter
+picks, search, chips, empty state, approve on a queue DCR, field reject and resubmit on
+Groton-Mystic, profile Review DCR and View DCR, Open in Inbox, Reset demo, phone width, no
+console errors.
 
 ### P2 · Agent panel shell
 
@@ -455,3 +476,4 @@ checks are in the Review Flow doc. Note what changed.
 | Q8 | Add `checks/` with Playwright as a dev dependency (downloads a browser once) | P2 | Yes; the site itself still installs nothing |
 | Q9 | Agent panel width 360px; phone sheet below 900px | P2 | Mock both and show you first |
 | Q10 | Stage 1: show anything at all (one urgent line in the Inbox), or leave it to the case study? | P5 | One line, only for an urgent task |
+| Q11 | Inbox filters sit in the sidebar, which the original hides below 1100px. On tablet and phone only the chips show | P2 | Leave as is; on small screens the agent's sheet is the way to filter |

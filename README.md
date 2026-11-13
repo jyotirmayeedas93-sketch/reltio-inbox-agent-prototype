@@ -31,7 +31,7 @@ Everything below describes that base flow, which still works in this copy.
 7. Click **+** on a row to add another value for that attribute. A new light-grey row (DS Grey/25) appears underneath with an empty dropdown. Values already in the request, such as *Green Corporation*, are greyed out in its menu. The new row has a delete icon instead of +.
 8. Click **Add attribute** to pick from the profile attributes that aren't in this request, such as *Doing Business As (DBA) Name*. It appears at the top as a light-grey row with its current profile value, ready to edit. It has **+** (add another value) and **delete**, with no undo, since you added it. Editing it shows **Updated**. A multi-value attribute such as *Industry Classification* adds one row per value. Once an attribute is added it leaves the menu, and deleting all of its rows puts it back. While a value is unchanged, an orange note under the box says it won't be sent as a change. The note disappears as soon as you edit it.
 9. Values are checked as you edit. Type letters into *Phone* and a red message appears under the box straight away. An incomplete value (for example 3 digits) or an emptied requester value is flagged once you leave the box. Each message disappears once the value is fixed. Approve and Resubmit don't go through while there's an error; they take you to the first one.
-10. Use the ⓘ icon on *High Confidence* to see why a field is clear.
+10. Use the ⓘ icon on *High confidence* to see why a field is clear.
 11. While a field is rejected, the header **Reject** is disabled and **Approve** becomes **Resubmit** (the DS primary button). Resubmit sends the rejected fields back to the requester with your comments and applies the rest. With no rejections, **Approve** applies everything. Either way the snack bar confirms the result. The Workflow card shows the outcome, and **Review DCR** becomes **View DCR**, which opens the decided request read-only.
 12. On the approved request **8kqTMD12**, click **View DCR**. The same overlay opens as **View DCR**, a read-only history:
    - **Rounds:** Submitted → Sent back → Resubmitted → Approved, each showing who, when and how many comments.
@@ -39,7 +39,8 @@ Everything below describes that base flow, which still works in this copy.
    - **Comments:** the 💬 buttons (on a round or a step) highlight those comments in the Comments panel, and each comment links back to its step.
    - On the rejected request **Rw4xLB90**, View DCR is simpler, because a rejection happens in the first review: no rounds, just each attribute's original and requested value (marked **Not applied**) and the reviewer's comment.
    - Your own DCR opens the same way once you've decided it.
-13. **Open Inbox** (bottom left) shows the same task from the Inbox: it has gone from the list. After **Reset demo**, the Inbox flow works on its own too: tick row checkboxes (the selection bar then shows icon-only **Reject**, **Approve**, **Delete** and **Archive** with tooltips on hover or focus; the actions themselves aren't built yet), open the first task to see the review panel, and use the pencil icon to open the same Review DCR dialog. The panel's **Additional details** tab shows the profile's context without leaving the Inbox: its other attributes, relationships and hierarchy, segments and data quality, plus **Open full profile**. (Figma's Comments tab is gone, because comments live in the Review DCR overlay.)
+13. **Open Inbox** (bottom left) shows the same task from the Inbox: it has gone from the list. After **Reset demo**, the Inbox flow works on its own too: tick row checkboxes (the selection bar then shows icon-only **Reject**, **Approve**, **Delete** and **Archive** with tooltips on hover or focus; the actions themselves aren't built yet), open any data change request to see its review panel, and use the pencil icon to open the same Review DCR dialog. Every DCR in the Inbox can be reviewed and resolved the same way. The panel's **Additional details** tab shows the profile's context without leaving the Inbox: its other attributes, relationships and hierarchy, segments and data quality, plus **Open full profile** (Groton-Mystic only; the other demo DCRs have no profile). (Figma's Comments tab is gone, because comments live in the Review DCR overlay.)
+14. The Inbox **Filters** work: search, Task type, Priority, Status and Due date narrow the list at once, each active filter shows as a removable chip above the table, and **Clear all** resets them. Step, DCR type, Entity type, Relationship type and Advanced Search are shown but not part of this prototype. The filters sit in the sidebar, which is hidden below 1100px wide, as in the original.
 
 The whole flow also works with the keyboard alone.
 
@@ -57,8 +58,8 @@ The whole flow also works with the keyboard alone.
 ### Human–AI interaction principles
 
 - **Advisory, never acting.** Signals point the reviewer to where they should look. They never approve, reject, edit or hide a change.
-- **Explain every signal.** Flagged fields always show their reasoning, and High Confidence fields show it behind an info icon.
-- **Say "I don't know."** *Not Validated* is shown as its own state, separate from low confidence, so the system never guesses.
+- **Explain every signal.** Flagged fields always show their reasoning, and High confidence fields show it behind an info icon.
+- **Say "I don't know."** *Not enough signal* is shown as its own state, separate from low confidence, so the system never guesses.
 - **Proportional friction.** Flagged fields open with their reasoning visible, clear fields stay compact, and every rejection needs a comment.
 
 ### Built on a design system
@@ -82,7 +83,8 @@ There is no build step and nothing to install. Open `index.html` in a browser.
 index.html                    page structure: profile (start) and inbox views, Review DCR dialog, comment dialogs, snack bar
 styles.css                    styles, built from DS tokens (plus the "Figma layer" of unbound values)
 icons.js                      DS Material icons exported from Figma
-data.js                       profile cards and Workflow requests, inbox rows, and the DCR: 8 field changes, confidence levels, reasoning copy
+data.js                       profile cards and Workflow requests, and the Figma DCR: 8 field changes, confidence levels, reasoning copy
+queue.js                      the one demo queue for the Inbox agent concept: 25 DCRs and 6 other tasks; every count derives from it
 app.js                        state, rendering, interactions (vanilla JS)
 design-system/tokens.json     every Build Design System token (W3C Design Tokens format)
 design-system/tokens.css      generated CSS custom properties
@@ -94,7 +96,8 @@ The UI is always derived from one state object. Tallies and summaries are comput
 ## What's real and what's prototype
 
 - **From the Figma design file:** the profile's attribute cards and Workflow requests, the inbox rows, field names, values, change types, confidence levels, the reasoning for flagged fields (Company Type and Tax ID), and the dialog and comment copy.
-- **Written for this prototype:** Figma shows only an info icon for *High Confidence* fields, so that reasoning copy was written here. It is marked `draftCopy: true` in `data.js`. The snack bar is the DS Snack Bar, because Figma has no confirmation frame. The "Remove rejection?" confirmation isn't in Figma either. It reuses the comment dialog shell and is built only from DS tokens.
+- **Demo queue (Inbox agent concept):** the Inbox lists 25 DCRs and 6 other tasks from `queue.js`. Apart from Groton-Mystic, every entity, value and reasoning line there was written for this concept and is demo data. The other task types keep their names from the Figma Inbox, with dates moved into the demo week. The demo date is fixed at 13 Nov 2026, so "due today" never drifts. Signal labels follow the concept's wording: High confidence, Needs review, Not enough signal (Figma: High Confidence, Needs review, Not Validated).
+- **Written for this prototype:** Figma shows only an info icon for *High confidence* fields, so that reasoning copy was written here. It is marked `draftCopy: true` in `data.js`. The snack bar is the DS Snack Bar, because Figma has no confirmation frame. The "Remove rejection?" confirmation isn't in Figma either. It reuses the comment dialog shell and is built only from DS tokens.
 - **Derived, not static:** the confidence summary, tally and comment count are calculated from the data, so they can differ from the static numbers on the Figma canvas.
 - **Demo data, not a live model.**
 - **Figma copy kept as is, even where frames disagree:** the profile says "Groton-Mystic Falcons / 118C6dGI" while the dialog says "…Ltd / 0KY7eHf", and the Workflow card's creator (vyacheslav.kovyazin) differs from the dialog's (j.rivera@reltio.com). "Assigned to" uses the reviewer's name instead of Figma's placeholder "username.test".
@@ -103,7 +106,7 @@ The UI is always derived from one state object. Tallies and summaries are comput
 - **Closed workflow requests:** their outcome (approved or rejected), priority, assignee and changed attributes are demo data added for the filters. The cards show Approved/Rejected instead of Figma's "Reviewed", and the header shows the real count (6) instead of Figma's static "18 item".
 - **Reviewer-added values and attributes** count as applied changes when you approve or resubmit. Empty values are ignored, and so are added attributes left unchanged from the profile.
 - **Suggesting:** sending a suggestion confirms with a snack bar but doesn't add a new request to the Workflow panel. More attributes is shown but not built. Values saved in Editing mode live only in the demo session.
-- **Not functional:** the other entity tabs, the nav rail apps, previous/next entity, Show more, the other Workflow requests, paging, filters, search, reassign and previous/next task. They are shown as in Figma but marked as not part of this prototype.
+- **Not functional:** the other entity tabs, the nav rail apps, previous/next entity, Show more, the other Workflow requests, paging, quick search in the header, Advanced Search and four of the Inbox filters, reassign and previous/next task. They are shown as in Figma but marked as not part of this prototype.
 
 ## How it was built
 

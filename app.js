@@ -11,25 +11,53 @@
 (function () {
   "use strict";
 
-  const { dcr, fields: SEED, tasks: TASKS, totalTasks, user, profile } = window.DEMO;
+  const { dcr: MAIN_DCR, fields: SEED, user, profile } = window.DEMO;
+  const QUEUE = window.QUEUE, TASKS = QUEUE.tasks;
+  const MAIN = MAIN_DCR.dcrId; // the Figma DCR: the one on the profile page
+  const DCR_TASKS = TASKS.filter((t) => t.type === "dcr");
+  const taskById = (id) => TASKS.find((t) => t.id === id);
   const $ = (s, r = document) => r.querySelector(s);
   const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   const icon = window.icon;
 
+  // Demo dates: the queue uses ISO strings and one fixed "today", so "due today" never drifts
+  const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const isoDate = (s) => { const [y, m, d] = s.slice(0, 10).split("-").map(Number); return new Date(y, m - 1, d); };
+  const fmtDay = (s) => { const d = isoDate(s); return `${MON[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; };
+  const fmtDayTime = (s) => { const [h, m] = s.slice(11, 16).split(":").map(Number); return `${fmtDay(s)} ${h % 12 || 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`; };
+  const DEMO_TODAY = isoDate(QUEUE.demoToday);
+  const daysFromToday = (s) => Math.round((isoDate(s) - DEMO_TODAY) / 864e5);
+  const initials = (s) => s.split(/[\s-]+/).filter((w) => /\p{L}/u.test(w[0] || "")).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
+
+  // Header copy for a DCR. The Figma DCR keeps its own (data.js); the rest derive it from the queue.
+  const meta = (t) => t.meta || { dcrId: t.id, entityName: t.entity, entityInitials: initials(t.entity), entityType: t.entityType,
+    entityId: t.entityId, createdBy: t.createdBy, createdOn: fmtDay(t.createdOn), step: t.step };
+  // `dcr` is always the DCR open in the review panel or dialog (state.current)
+  const dcr = new Proxy({}, { get: (_, k) => meta(taskById(state.current))[k] });
+
   // Workflow panel filters (profile page)
   const WF_DEFAULT = { q: "", type: "all", status: "all", priority: "all", assignee: "all", due: "all", created: "all" };
+  // Inbox filters. `group` has no sidebar control: only the agent sets it, and it shows as a chip.
+  const IF_DEFAULT = { q: "", type: "all", priority: "all", status: "all", due: "all", group: "all" };
 
   // ---------- State ----------
+  // Review state lives per DCR in state.dcrs. The keys below read and write the DCR in state.current,
+  // so the review code works on whichever DCR is open without knowing there are many.
+  const PER_DCR = ["fields", "comments", "extra", "touched", "newAttrs", "resolved"];
+  const freshDcr = (t) => ({
+    fields: t.fields.map((f) => ({ ...f, value: f.proposed, status: "pending", whyOpen: false })),
+    comments: [],           // { id, fieldId|null, kind: "rejection"|"note"|"request", text, at }
+    extra: [],              // values the REVIEWER adds with "+": { id, of: fieldId, value }
+    touched: new Set(),     // row ids whose value was committed (show "incomplete" errors only after that)
+    newAttrs: [],           // profile attributes the REVIEWER adds with "Add attribute", one row per value: { id, attr, current, value }
+    resolved: null,         // { kind: "approved"|"rejected"|"resubmitted", applied, rejected }
+  });
   function freshState() {
-    return {
-      fields: SEED.map((f) => ({ ...f, value: f.proposed, status: "pending", whyOpen: false })),
-      comments: [],           // { id, fieldId|null, kind: "rejection"|"note"|"request", text, at }
-      extra: [],              // values the REVIEWER adds with "+": { id, of: fieldId, value }
-      touched: new Set(),     // row ids whose value was committed (show "incomplete" errors only after that)
-      newAttrs: [],           // profile attributes the REVIEWER adds with "Add attribute", one row per value: { id, attr, current, value }
-      selected: new Set(),    // indices into TASKS
-      dcrInInbox: true,
-      resolved: null,         // { kind: "approved"|"rejected", applied, rejected }
+    const s = {
+      dcrs: Object.fromEntries(DCR_TASKS.map((t) => [t.id, freshDcr(t)])),
+      current: MAIN,          // DCR id open in the review panel / dialog
+      selected: new Set(),    // task ids ticked in the Inbox
+      inboxFilter: { ...IF_DEFAULT },
       pending: null,          // what the open comment dialog will do: { kind: "field", id } | { kind: "request", from }
       orgOpen: true,
       wfOpen: true,           // Workflow panel on the profile (open in Figma "Reviewer Viewing")
@@ -48,6 +76,12 @@
       sug: null,              // Suggesting draft: { rows: { [attrKey]: [{ rid, orig, value, del, added }] } }
       seq: 0,
     };
+    PER_DCR.forEach((k) => Object.defineProperty(s, k, {
+      get() { return this.dcrs[this.current][k]; },
+      set(v) { this.dcrs[this.current][k] = v; },
+      enumerable: true,
+    }));
+    return s;
   }
   let state = freshState();
 
@@ -55,8 +89,8 @@
   const CHANGE_LABEL = { added: "Added", edited: "Edited", deleted: "Deleted" };
   const CONF = {
     review: { label: "Needs review" },
-    high: { label: "High Confidence" },
-    notvalidated: { label: "Not Validated" },
+    high: { label: "High confidence" },
+    notvalidated: { label: "Not enough signal" },
   };
   const PRIORITY = { High: "error", Medium: "progress", Low: "success" };
   const slug = (s) => s.toLowerCase().replace(/\s+/g, "-");
@@ -115,36 +149,46 @@
   }
   function summaryText() {
     const c = confCounts();
-    return `${c.high} clear · ${c.review} needs review · ${c.notvalidated} no signal`;
+    return `${c.high} high confidence · ${c.review} needs review · ${c.notvalidated} not enough signal`;
   }
-  const visibleTasks = () => TASKS.map((t, i) => ({ t, i })).filter(({ i }) => i !== 0 || state.dcrInInbox);
 
   // ---------- Inbox ----------
+  const isResolved = (t) => t.type === "dcr" && !!state.dcrs[t.id].resolved;
+  const myTasks = () => TASKS.filter((t) => t.assignee === QUEUE.reviewer && !isResolved(t))
+    .sort((a, b) => b.createdOn.localeCompare(a.createdOn));
+  const visibleTasks = () => myTasks().filter((t) => inboxMatch(t, state.inboxFilter));
   function renderInbox() {
-    const rows = visibleTasks().map(({ t, i }) => {
-      const [type, ent, more, pri, by, on, status, due] = t;
-      const isDcr = i === 0;
-      const checked = state.selected.has(i);
-      const typeCell = isDcr
-        ? `<button type="button" class="row-open" id="open-dcr" aria-haspopup="true">${esc(type)}</button>`
+    const shown = visibleTasks();
+    const ids = new Set(shown.map((t) => t.id));
+    state.selected.forEach((id) => { if (!ids.has(id)) state.selected.delete(id); }); // never act on rows the reviewer can't see
+    const panelOpen = !$("#review-panel").hidden;
+    const rows = shown.map((t) => {
+      const type = QUEUE.types[t.type];
+      const checked = state.selected.has(t.id);
+      const typeCell = t.type === "dcr"
+        ? `<button type="button" class="row-open" id="open-${t.id}" data-open="${t.id}" aria-haspopup="true">${esc(type)}<span class="sr-only">: ${esc(t.entity)}</span></button>`
         : `<span class="cell-type__text">${esc(type)}</span>`;
       return `
-        <tr data-i="${i}" class="${checked ? "is-checked" : ""}${isDcr && !$("#review-panel").hidden ? " is-open" : ""}">
+        <tr data-task="${t.id}" class="${checked ? "is-checked" : ""}${panelOpen && t.id === state.current ? " is-open" : ""}">
           <td class="col-type"><div class="cell-type">
-            <label class="cb"><input type="checkbox" data-row="${i}" ${checked ? "checked" : ""} aria-label="Select ${esc(type)} for ${esc(ent)}"><span class="cb__box" aria-hidden="true"></span></label>
+            <label class="cb"><input type="checkbox" data-row="${t.id}" ${checked ? "checked" : ""} aria-label="Select ${esc(type)} for ${esc(t.entity)}"><span class="cb__box" aria-hidden="true"></span></label>
             ${typeCell}</div></td>
-          <td class="col-ent"><span class="pill pill--default">${esc(ent)}</span>${more ? `<span class="pill-more">+${more}</span>` : ""}</td>
-          <td class="col-pri"><span class="pill pill--${PRIORITY[pri]}">${esc(pri)}</span></td>
-          <td class="col-by">${esc(by)}</td>
-          <td class="col-on">${esc(on)}</td>
-          <td class="col-st"><span class="status status--${slug(status)}"><span class="status__dot" aria-hidden="true"></span>${esc(status)}</span></td>
-          <td class="col-due">${esc(due)}</td>
+          <td class="col-ent"><div class="cell-ent"><span class="pill pill--default cell-ent__pill" title="${esc(t.entity)}"><span class="cell-ent__text">${esc(t.entity)}</span></span>${t.more ? `<span class="pill-more">+${t.more}</span>` : ""}</div></td>
+          <td class="col-pri"><span class="pill pill--${PRIORITY[t.priority]}">${esc(t.priority)}</span></td>
+          <td class="col-by">${esc(t.createdBy)}</td>
+          <td class="col-on">${esc(fmtDayTime(t.createdOn))}</td>
+          <td class="col-st"><span class="status status--${slug(t.status)}"><span class="status__dot" aria-hidden="true"></span>${esc(t.status)}</span></td>
+          <td class="col-due">${esc(fmtDay(t.due))}</td>
         </tr>`;
     });
-    $("#task-rows").innerHTML = rows.join("");
-    const shown = visibleTasks().length;
-    $("#inbox-count").textContent = shown;
-    $("#page-range").textContent = `1–${shown} of ${totalTasks - (state.dcrInInbox ? 0 : 1)}`;
+    $("#task-rows").innerHTML = rows.length ? rows.join("") : `
+      <tr><td colspan="7" class="tasks__empty"><p>No tasks match these filters.</p><button type="button" class="link-btn" data-action="if-clear">Clear all filters</button></td></tr>`;
+    const open = TASKS.filter((t) => !isResolved(t));
+    $("#inbox-count").textContent = myTasks().length;
+    $("#team-count").textContent = open.filter((t) => t.assignee !== QUEUE.reviewer).length;
+    $("#all-count").textContent = open.length;
+    $("#page-range").textContent = `${shown.length ? `1–${shown.length}` : "0"} of ${shown.length}`;
+    renderInboxChips();
     renderSelection();
   }
   function renderSelection() {
@@ -285,7 +329,8 @@
       ? `<p class="resolved-note resolved-note--${r.kind}">${r.kind === "approved" ? `Approved · ${r.applied} applied` : r.kind === "resubmitted" ? `Sent for resubmission · ${r.rejected} returned, ${r.applied} applied` : "Rejected · returned to the requester"}</p>`
       : actionsHTML("panel");
   }
-  function openPanel() {
+  function openPanel(id = state.current) {
+    state.current = id;
     setPanelTab("info");
     renderPanel();
     panel.hidden = false;
@@ -295,7 +340,7 @@
   function closePanel({ focus = true } = {}) {
     panel.hidden = true;
     renderInbox();
-    if (focus) ($("#open-dcr") || $("#task-table")).focus();
+    if (focus) ($(`#open-${state.current}`) || $("#task-table")).focus();
   }
 
   // ---------- Review DCR dialog (Inbox-09 … 12) ----------
@@ -452,7 +497,7 @@
         <p class="tally tally--rejected"><span class="tally__n">${t.rejected}</span><span class="tally__l">Rejected</span></p>
       </div>
       <h3 class="sc__title">Suggested Changes</h3>
-      ${state.resolved ? "" : addAttrHTML()}
+      ${state.resolved || state.current !== MAIN ? "" : addAttrHTML()}
       <div class="ai-summary">${icon("ai", 18)}<span>${summaryText()}</span><span class="ai-summary__right">Confidence updates as you edit</span></div>
       <ul class="edit-rows" aria-label="Suggested changes">${state.newAttrs.map(arowHTML).join("")}${state.fields.map(erowHTML).join("")}</ul>`;
     renderRail();
@@ -542,7 +587,7 @@
   function historyFor(id) {
     if (id === dcr.dcrId) return ownHistory();
     const h = window.DEMO.history[id];
-    return { dcrId: id, entity: { name: profile.entityName, initials: dcr.entityInitials, type: dcr.entityType, id: profile.entityId }, ...h };
+    return { dcrId: id, entity: { name: profile.entityName, initials: MAIN_DCR.entityInitials, type: MAIN_DCR.entityType, id: profile.entityId }, ...h };
   }
   const stageOf = (h, sid) => h.stages.find((x) => x.id === sid);
   const stageNo = (h, sid) => h.stages.findIndex((x) => x.id === sid) + 1;
@@ -793,8 +838,7 @@
     const added = state.extra.filter((x) => x.value).length + state.newAttrs.filter(newAttrChanged).length; // the reviewer's own additions
     state.resolved = { kind, applied: state.fields.length - t.rejected + added, rejected: t.rejected, at: now() };
     reviewOpener = reviewOpenerSel = null; // focus goes to the snack bar, not back to the opener
-    state.dcrInInbox = false;
-    state.selected.delete(0);
+    state.selected.delete(state.current);
     closeReview();
     closePanel({ focus: false });
     renderInbox();
@@ -861,6 +905,7 @@
     const sel = opts.findIndex((o) => o.getAttribute("aria-selected") === "true");
     ddActive(sel >= 0 ? sel : Math.max(0, opts.findIndex((o) => o.getAttribute("aria-disabled") !== "true")));
     if ($("#wf-panel").contains(trigger)) scrollWithin($("#wf-list"), menu); // keep the whole menu in view inside the panel
+    if ($(".sidebar").contains(trigger)) scrollWithin($(".sidebar"), menu);
   }
   function ddActive(i) {
     if (!dd) return;
@@ -902,6 +947,11 @@
       return;
     }
     if (id === "__addattr") { addAttribute(v); return; }
+    if (id.startsWith("if-")) {
+      setInboxFilters({ ...state.inboxFilter, [id.slice(3)]: v });
+      $(`#val-${id}`).focus();
+      return;
+    }
     if (id.startsWith("wff-")) {
       state.wfDraft[id.slice(4)] = v; renderFilterForm();
       $(`#val-${id}`).focus();
@@ -917,7 +967,7 @@
     if (v !== target.value) { target.value = v; renderReview(); announce(`${it.label} set to ${v}.`); }
     $(`#val-${id}`).focus();
   }
-  const ddRoots = [review, $("#wf-panel"), $("#profile-main")];
+  const ddRoots = [review, $("#wf-panel"), $("#profile-main"), $(".sidebar")];
   // Clicking a menu item must not take focus away from its combobox (keeps Esc / arrows working)
   document.addEventListener("mousedown", (e) => { if (e.target.closest(".dd__item")) e.preventDefault(); });
   document.addEventListener("click", (e) => { if (dd && !dd.trigger.contains(e.target) && !dd.menu.contains(e.target)) ddClose(); });
@@ -1059,6 +1109,10 @@
   const CARDS = profile.columns.flat();
   const cardBy = (t) => CARDS.find((c) => c.title === t);
   function renderDetails() {
+    if (state.current !== MAIN) {
+      $("#ptab-details").innerHTML = `<p class="pd__note pd__note--solo">Profile details for ${esc(dcr.entityName)} aren't part of this demo.</p>`;
+      return;
+    }
     const groups = CARDS.filter((c) => c.attrs).map((c) => ({ title: c.title, attrs: withVals(c).filter(([l]) => !profile.inDcr[l]) })).filter((g) => g.attrs.length);
     const nAttrs = groups.reduce((n, g) => n + g.attrs.length, 0);
     const dnb = cardBy("D&B Hierarchy"), seg = cardBy("Segments").table;
@@ -1119,6 +1173,7 @@
   let view = "profile";
   function showView(v) {
     view = v === "inbox" ? "inbox" : "profile";
+    if (view === "profile") { panel.hidden = true; state.current = MAIN; } // the profile only holds the Figma DCR
     views.profile.hidden = view !== "profile";
     views.inbox.hidden = view !== "inbox";
     $("#skip-link").setAttribute("href", view === "inbox" ? "#task-table" : "#profile-main");
@@ -1133,9 +1188,9 @@
 
   // ---------- Profile page (Figma 1752:18350) ----------
   function renderProfileStatic() {
-    $("#ent-avatar").textContent = dcr.entityInitials;
+    $("#ent-avatar").textContent = MAIN_DCR.entityInitials;
     $("#ent-name").textContent = profile.entityName;
-    $("#ent-type").textContent = dcr.entityType;
+    $("#ent-type").textContent = MAIN_DCR.entityType;
     $("#ent-id").textContent = `Entity ID: ${profile.entityId}`;
     $("#ent-results").textContent = profile.searchResults;
     $("#profile-user-avatar").textContent = user.initials;
@@ -1347,7 +1402,7 @@
   function renderWorkflow() {
     if (dp) dpClose();
     if (dd && wf.contains(dd.trigger)) dd = null;
-    const w = profile.workflow, o = w.open, r = state.resolved, f = state.wfForm;
+    const w = profile.workflow, o = w.open, r = state.dcrs[MAIN].resolved, f = state.wfForm; // the profile shows the Figma DCR only
     const expanded = state.wfExpanded && !r;
     wf.hidden = !state.wfOpen;
     $("#wf-toggle").setAttribute("aria-expanded", String(state.wfOpen));
@@ -1365,8 +1420,8 @@
             ${window.ICON_TASK_DCR}
             <div class="req__main">
               <h3 class="req__title">Data Change Request Review${r ? "" : `<span class="sr-only"> · waiting for your review, ${f.priority.toLowerCase()} priority</span>`}</h3>
-              ${reqAttrs(dcr.dcrId, o.createdBy, o.createdOn, o.step)}
-              ${matchLine(dcr.dcrId)}
+              ${reqAttrs(MAIN, o.createdBy, o.createdOn, o.step)}
+              ${matchLine(MAIN)}
             </div>
             <div class="req__meta">
               <span data-icon="flag" data-size="14" aria-hidden="true"></span><span><span class="sr-only">Due </span>${esc(f.dueDate)}</span>
@@ -1378,7 +1433,7 @@
             ${r
               ? `<span class="req__status req__status--${r.kind}"><span data-icon="${r.kind === "approved" ? "done" : r.kind === "rejected" ? "close_24" : "send"}" data-size="18" aria-hidden="true"></span>${RESOLVED_LABEL[r.kind]}</span>
                  <button type="button" class="btn btn--text" data-action="wf-view" aria-haspopup="dialog"><span data-icon="visibility" data-size="18"></span>View DCR</button>`
-              : `<a href="#inbox" class="btn btn--text" data-action="wf-inbox"><span data-icon="open_in_new" data-size="18"></span>Open in Inbox<span class="sr-only">: DCR ${esc(dcr.dcrId)}</span></a>
+              : `<a href="#inbox" class="btn btn--text" data-action="wf-inbox"><span data-icon="open_in_new" data-size="18"></span>Open in Inbox<span class="sr-only">: DCR ${esc(MAIN)}</span></a>
                  <button type="button" class="btn btn--text" data-action="wf-review" aria-haspopup="dialog"><span data-icon="review_dcr" data-size="18"></span>Review DCR</button>`}
           </div>
           ${expanded ? `
@@ -1394,7 +1449,7 @@
                 <div class="erow__field">${ddHTML("wf-priority", w.priorities, f.priority, [], false)}</div></div>
             </div>
             <div class="dropdown" data-id="wf-assignee"><span class="field__label" id="lbl-wf-assignee">Assigned to</span>
-              <div class="erow__field">${ddHTML("wf-assignee", w.users, f.assignedTo, [], false)}</div></div>
+              <div class="erow__field">${ddHTML("wf-assignee", QUEUE.team, f.assignedTo, [], false)}</div></div>
           </div>` : ""}
         </div>
       </li>`;
@@ -1416,20 +1471,20 @@
           </div>
         </div>
       </li>`).join("");
-    $("#wf-list").innerHTML = (pass.get(dcr.dcrId) ? dcrCard : "") + doneCards + (shown ? "" : `
+    $("#wf-list").innerHTML = (pass.get(MAIN) ? dcrCard : "") + doneCards + (shown ? "" : `
       <li class="wf__empty"><p>No workflows on this profile match these filters.</p><button type="button" class="btn btn--text" data-action="wf-clear">Clear filters</button></li>`);
     hydrateIcons(wf);
   }
 
   // ---------- Workflow filters (profile page) ----------
   const W = profile.workflow;
-  const TODAY = (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); })();
+  const TODAY = DEMO_TODAY;
   const STATUS_LABEL = { open: "Open", approved: "Approved", rejected: "Rejected", resubmitted: "Sent for resubmission" };
   const WF_OPTIONS = {
     type: [{ v: "all", l: "All types" }, ...W.types.map((t) => ({ v: t.id, l: t.label, disabled: !t.enabled }))],
     status: [{ v: "all", l: "All statuses" }, { v: "open", l: "Open" }, { v: "closed", l: "Closed (any outcome)" }, { v: "approved", l: "Approved" }, { v: "rejected", l: "Rejected" }, { v: "resubmitted", l: "Sent for resubmission" }],
     priority: [{ v: "all", l: "Any priority" }, ...W.priorities.slice().reverse().map((p) => ({ v: p, l: p }))],
-    assignee: [{ v: "all", l: "Anyone" }, ...W.users.map((u) => ({ v: u, l: u === user.reviewer ? `${u} (me)` : u }))],
+    assignee: [{ v: "all", l: "Anyone" }, ...QUEUE.team.map((u) => ({ v: u, l: u === user.reviewer ? `${u} (me)` : u }))],
     due: [{ v: "all", l: "Any due date" }, { v: "overdue", l: "Overdue" }, { v: "7", l: "Due in the next 7 days" }, { v: "30", l: "Due in the next 30 days" }],
     created: [{ v: "all", l: "Any time" }, ...[TODAY.getFullYear(), TODAY.getFullYear() - 1, TODAY.getFullYear() - 2].map((y) => ({ v: String(y), l: String(y) })), { v: "older", l: `${TODAY.getFullYear() - 3} or earlier` }],
   };
@@ -1437,11 +1492,11 @@
   const optLabel = (k, v) => (WF_OPTIONS[k].find((o) => o.v === v) || {}).l || v;
   // Every request on this profile as one searchable record
   function wfItems() {
-    const r = state.resolved, f = state.wfForm, o = W.open;
+    const d = state.dcrs[MAIN], r = d.resolved, f = state.wfForm, o = W.open;
     const own = {
-      id: dcr.dcrId, type: "dcr", status: r ? r.kind : "open", priority: f.priority, assignee: f.assignedTo, due: f.dueDate,
+      id: MAIN, type: "dcr", status: r ? r.kind : "open", priority: f.priority, assignee: f.assignedTo, due: f.dueDate,
       on: o.createdOn, by: o.createdBy, step: o.step, mine: true,
-      attrs: [...state.fields.flatMap((x) => [x.label, x.value, x.original]), ...state.newAttrs.map((x) => x.attr)].filter(Boolean),
+      attrs: [...d.fields.flatMap((x) => [x.label, x.value, x.original]), ...d.newAttrs.map((x) => x.attr)].filter(Boolean),
     };
     return [own, ...W.reviewed.map((x) => ({ ...x, type: "dcr", status: x.outcome }))];
   }
@@ -1466,7 +1521,7 @@
     if (visible.includes(q)) return {};
     const attr = it.attrs.find((a) => String(a).toLowerCase().includes(q));
     if (!attr) return null;
-    const label = it.mine ? (state.fields.find((x) => [x.label, x.value, x.original].includes(attr)) || {}).label || attr : attr;
+    const label = it.mine ? (state.dcrs[MAIN].fields.find((x) => [x.label, x.value, x.original].includes(attr)) || {}).label || attr : attr;
     return { matchedAttr: label === attr ? attr : `${label} (${attr})` };
   }
   const activeFilters = (F) => [...(F.q.trim() ? [["q", `“${F.q.trim()}”`]] : []), ...WF_FIELDS.filter(([k]) => F[k] !== "all").map(([k, l]) => [k, `${l}: ${optLabel(k, F[k])}`])];
@@ -1538,6 +1593,7 @@
   wf.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-action]");
     if (!btn || btn.getAttribute("aria-disabled") === "true") return;
+    if (btn.dataset.action.startsWith("wf-")) state.current = MAIN; // the profile only holds the Figma DCR
     switch (btn.dataset.action) {
       case "wf-review": case "wf-view": openReview(); break;
       case "wf-inbox": {
@@ -1545,8 +1601,8 @@
         e.preventDefault();
         history.pushState(null, "", "#inbox");
         showView("inbox");
-        openPanel();
-        announce(`Inbox. Data Change Request Review ${dcr.dcrId} is open in the review panel.`);
+        openPanel(MAIN);
+        announce(`Inbox. Data Change Request Review ${MAIN} is open in the review panel.`);
         break;
       }
       case "wf-history": state.viewing = btn.dataset.dcr; openReview(`[data-dcr="${btn.dataset.dcr}"]`); break;
@@ -1576,17 +1632,94 @@
   });
 
   // ---------- Events ----------
-  $("#task-rows").addEventListener("click", (e) => { if (e.target.closest("#open-dcr")) openPanel(); });
+  $("#task-rows").addEventListener("click", (e) => { const b = e.target.closest("[data-open]"); if (b) openPanel(b.dataset.open); });
   $("#task-rows").addEventListener("change", (e) => {
     const cb = e.target.closest("input[data-row]"); if (!cb) return;
-    const i = +cb.dataset.row;
-    cb.checked ? state.selected.add(i) : state.selected.delete(i);
+    const id = cb.dataset.row;
+    cb.checked ? state.selected.add(id) : state.selected.delete(id);
     cb.closest("tr").classList.toggle("is-checked", cb.checked);
     renderSelection();
   });
   $("#select-all").addEventListener("change", (e) => {
-    state.selected = e.target.checked ? new Set(visibleTasks().map(({ i }) => i)) : new Set();
+    state.selected = e.target.checked ? new Set(visibleTasks().map((t) => t.id)) : new Set();
     renderInbox();
+  });
+
+  // ---------- Inbox filters (sidebar, Figma Inbox-07) ----------
+  // Same DS Field + Menu dropdowns as the Workflow filters. Picks apply at once, as an Inbox sidebar does.
+  const IF_OPTIONS = {
+    type: [{ v: "all", l: "All tasks" }, ...Object.entries(QUEUE.types).map(([v, l]) => ({ v, l }))],
+    priority: [{ v: "all", l: "All" }, ...["High", "Medium", "Low"].map((p) => ({ v: p, l: p }))],
+    status: [{ v: "all", l: "All" }, ...[...new Set(TASKS.map((t) => t.status))].map((s) => ({ v: s, l: s }))],
+    due: [{ v: "all", l: "Any due date" }, { v: "overdue", l: "Overdue" }, { v: "today", l: "Due today" }, { v: "week", l: "Due in the next 7 days" }],
+    group: [{ v: "all", l: "All" }, ...Object.entries(QUEUE.groups).map(([v, l]) => ({ v, l }))],
+  };
+  // Sidebar order follows Figma. Entries with a placeholder are shown but aren't part of this prototype.
+  const IF_FIELDS = [["type", "Task type"], ["step", "Step", "All steps"], ["dcrType", "DCR type", "All"], ["entityType", "Entity type", "All"],
+    ["relType", "Relationship type", "All values"], ["priority", "Priority"], ["status", "Status"], ["due", "Due date"]];
+  const IF_CHIP = { type: "Task type", priority: "Priority", status: "Status", due: "Due", group: "Group" };
+  const ifLabel = (k, v) => (IF_OPTIONS[k].find((o) => o.v === v) || {}).l || v;
+  const ifActive = (F) => [...(F.q.trim() ? [["q", `“${F.q.trim()}”`]] : []),
+    ...Object.keys(IF_CHIP).filter((k) => F[k] !== "all").map((k) => [k, `${IF_CHIP[k]}: ${ifLabel(k, F[k])}`])];
+  function inboxMatch(t, F) {
+    if (F.type !== "all" && t.type !== F.type) return false;
+    if (F.priority !== "all" && t.priority !== F.priority) return false;
+    if (F.status !== "all" && t.status !== F.status) return false;
+    if (F.group !== "all" && t.group !== F.group) return false;
+    if (F.due !== "all") {
+      const d = daysFromToday(t.due);
+      if (F.due === "overdue" ? d >= 0 : F.due === "today" ? d !== 0 : d < 0 || d > 7) return false;
+    }
+    const q = F.q.trim().toLowerCase();
+    if (!q) return true;
+    const fields = (t.fields || []).flatMap((f) => [f.label, f.original, f.proposed]);
+    return [t.id, t.entity, QUEUE.types[t.type], t.createdBy, t.status, t.priority, t.step, ...fields].filter(Boolean).join(" ").toLowerCase().includes(q);
+  }
+  function renderInboxFilters() {
+    if (dd && $("#if-list").contains(dd.trigger)) dd = null;
+    const F = state.inboxFilter;
+    if ($("#if-q").value !== F.q) $("#if-q").value = F.q;
+    const chev = `<span class="dd__chev" aria-hidden="true">${icon("arrow_drop_down", 20)}</span>`;
+    $("#if-list").innerHTML = IF_FIELDS.map(([k, l, placeholder]) => {
+      const id = `if-${k}`;
+      if (placeholder) return `<div class="dropdown"><span class="field__label" id="lbl-${id}">${l}</span>
+        <button type="button" class="erow__input dd__trigger" id="val-${id}" aria-labelledby="lbl-${id} val-${id}" disabled title="Not part of this prototype"><span class="dd__value">${placeholder}</span>${chev}</button></div>`;
+      return `<div class="dropdown" data-id="${id}"><span class="field__label" id="lbl-${id}">${l}</span><div class="filters__dd">
+        <button type="button" class="erow__input dd__trigger" id="val-${id}" role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-controls="lb-${id}" aria-labelledby="lbl-${id} val-${id}"><span class="dd__value">${esc(ifLabel(k, F[k]))}</span>${chev}</button>
+        <ul class="dd__menu" id="lb-${id}" role="listbox" aria-labelledby="lbl-${id}" hidden>${IF_OPTIONS[k].map((o, i) =>
+          `<li class="dd__item" role="option" id="opt-${id}-${i}" data-value="${esc(o.v)}" data-label="${esc(o.l)}" aria-selected="${o.v === F[k]}">${esc(o.l)}</li>`).join("")}</ul></div></div>`;
+    }).join("");
+  }
+  function renderInboxChips() {
+    const box = $("#inbox-chips"), act = ifActive(state.inboxFilter);
+    box.hidden = !act.length;
+    box.innerHTML = act.length ? `<span class="sr-only">Active filters:</span>${act.map(([k, l]) => `<span class="wf-chip">${esc(l)}<button type="button" class="wf-chip__x" data-action="if-unfilter" data-key="${k}" aria-label="Remove filter ${esc(l)}">${icon("clear", 14)}</button></span>`).join("")}
+      <button type="button" class="link-btn wf-chips__clear" data-action="if-clear">Clear all</button>` : "";
+  }
+  let ifAnnounce = null;
+  function setInboxFilters(F) {
+    state.inboxFilter = { ...IF_DEFAULT, ...F };
+    renderInboxFilters();
+    renderInbox();
+    clearTimeout(ifAnnounce); // typing in search announces once it settles
+    ifAnnounce = setTimeout(() => {
+      const n = visibleTasks().length;
+      announce(ifActive(state.inboxFilter).length ? `Showing ${n} of ${myTasks().length} tasks.` : `Filters cleared. Showing all ${n} tasks.`);
+    }, 400);
+  }
+  $("#if-q").addEventListener("input", (e) => setInboxFilters({ ...state.inboxFilter, q: e.target.value }));
+  $("#view-inbox").addEventListener("click", (e) => {
+    const b = e.target.closest('[data-action="if-unfilter"], [data-action="if-clear"]'); if (!b) return;
+    const sidebarShown = !!$(".sidebar").offsetParent;
+    if (b.dataset.action === "if-clear") {
+      setInboxFilters(IF_DEFAULT);
+      (sidebarShown ? $("#if-q") : $("#task-table")).focus();
+      return;
+    }
+    const k = b.dataset.key, i = ifActive(state.inboxFilter).findIndex(([x]) => x === k);
+    setInboxFilters({ ...state.inboxFilter, [k]: IF_DEFAULT[k] });
+    const xs = $("#inbox-chips").querySelectorAll(".wf-chip__x");
+    (xs[Math.min(i, xs.length - 1)] || (sidebarShown ? $("#if-q") : $("#task-table"))).focus();
   });
   $("#close-panel").addEventListener("click", () => closePanel());
   $("#open-review").addEventListener("click", openReview);
@@ -1766,14 +1899,34 @@
     [udlg, cdlg, review].forEach((d) => { if (d.open) d.close(); });
     state = freshState();
     panel.hidden = true; toast.hidden = true;
-    renderInbox(); renderFilterForm(); renderWorkflow(); renderMode(); renderGrid();
-    (view === "profile" ? $('#wf-list [data-action="wf-review"]') : $("#open-dcr")).focus();
+    renderInboxFilters(); renderInbox(); renderFilterForm(); renderWorkflow(); renderMode(); renderGrid();
+    (view === "profile" ? $('#wf-list [data-action="wf-review"]') : $("#task-rows .row-open")).focus();
   });
+
+  // ---------- Bridge for the Inbox agent (PLAN.md 5.4) ----------
+  // app.js owns state and rendering; agent.js only goes through these.
+  window.APP = {
+    state: () => state,
+    tasks: () => TASKS,
+    today: () => QUEUE.demoToday,
+    selection: () => [...state.selected],
+    setInboxFilters: (f) => setInboxFilters(f),
+    clearInboxFilters: () => setInboxFilters(IF_DEFAULT),
+    openTask(id, { fieldId } = {}) {
+      if (view !== "inbox") { history.pushState(null, "", "#inbox"); showView("inbox"); }
+      openPanel(id);
+      const row = fieldId && panel.querySelector(`.chg[data-id="${fieldId}"]`);
+      if (row) { scrollWithin($("#panel-changes"), row); flash(row); } // scroll the list only, never the page
+    },
+    announce,
+    render: () => renderInbox(),
+  };
 
   // ---------- Boot ----------
   $("#user-avatar").textContent = user.initials;
   hydrateIcons();
   renderProfileStatic();
+  renderInboxFilters();
   renderInbox();
   showView(location.hash.slice(1));
 })();

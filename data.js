@@ -46,36 +46,7 @@ window.DEMO = {
       reasoning: "Within the typical year-on-year range for an organisation of this size.", draftCopy: true },
   ],
 
-  // Inbox rows (Inbox-07). The first row is the DCR that opens the review panel.
-  // [task type, entity, extra entities, priority, created by, created on, status, due date]
-  tasks: [
-    ["Data Change Request Review", "Groton Mystic F...", 2, "High", "Vyacheslav.kovy...", "Jan 15, 2025 2:18 PM", "In Review", "Feb 14, 2025"],
-    ["Potential Match Review", "Acme Corporation", 2, "High", "Sarah Mitchell", "Jan 15, 2025 3:42 PM", "Open", "Feb 15, 2025"],
-    ["Authoring", "GlobalTech Inc", 0, "Medium", "James Carter", "Jan 15, 2025 11:30 AM", "Pending Approval", "Feb 10, 2025"],
-    ["RDM Data Change Request Review", "Product SKU-4502", 1, "Medium", "Sarah Mitchell", "Jan 14, 2025 4:55 PM", "Completed", "Feb 8, 2025"],
-    ["Recommend for Delete", "John D. Williams", 1, "High", "David Kowalski", "Jan 14, 2025 3:20 PM", "Open", "Feb 5, 2025"],
-    ["Data Change Request Review", "Santa Barbara Cotta...", 0, "High", "Sarah Mitchell", "Jan 13, 2025 11:16 PM", "In Review", "Jan 31, 2025"],
-    ["Potential Match Review", "Person A", 3, "Medium", "James Carter", "Jan 13, 2025 9:45 PM", "Open", "Jan 31, 2025"],
-    ["Data Change Request Review", "222 E 80th St Apt 1...", 0, "High", "Sarah Mitchell", "Jan 13, 2025 8:30 PM", "Pending Approval", "Jan 31, 2025"],
-    ["RDM Data Change Request Review", "MedDevice X100", 0, "Medium", "Emily Nguyen", "Jan 13, 2025 6:12 PM", "Completed", "Jan 31, 2025"],
-    ["Authoring", "Nexus Healthcare", 0, "Medium", "James Carter", "Jan 13, 2025 4:05 PM", "Rejected", "Jan 31, 2025"],
-    ["Recommend for Delete", "145 W 4th St Ste 10...", 0, "Low", "Sarah Mitchell", "Jan 12, 2025 2:33 PM", "Open", "Jan 28, 2025"],
-    ["Data Change Request Review", "Person B", 0, "Medium", "Sarah Mitchell", "Jan 12, 2025 11:50 AM", "In Review", "Jan 28, 2025"],
-    ["Potential Match Review", "Calle 6 Munoz River...", 0, "High", "David Kowalski", "Jan 11, 2025 5:18 PM", "Inactive", "Jan 28, 2025"],
-    ["Authoring", "Bright Pharma Ltd", 0, "Medium", "James Carter", "Jan 10, 2025 3:40 PM", "Open", "Jan 25, 2025"],
-    ["Data Change Request Review", "28426 Tomball P...", 1, "Medium", "Sarah Mitchell", "Jan 9, 2025 1:22 PM", "Pending Approval", "Jan 25, 2025"],
-    ["RDM Data Change Request Review", "ABC Group", 0, "Low", "Emily Nguyen", "Jan 8, 2025 10:15 AM", "Completed", "Jan 22, 2025"],
-    ["Recommend for Delete", "Maria Gonzalez", 0, "Medium", "David Kowalski", "Jan 7, 2025 8:48 AM", "Open", "Jan 20, 2025"],
-    ["Potential Match Review", "Summit Industries", 0, "High", "Sarah Mitchell", "Jan 6, 2025 4:30 PM", "In Review", "Jan 20, 2025"],
-    ["Data Change Request Review", "1200 Park Ave, Bldg...", 2, "Medium", "James Carter", "Jan 3, 2025 2:10 PM", "Rejected", "Jan 18, 2025"],
-    ["Authoring", "DataCore Systems", 0, "Medium", "Emily Nguyen", "Dec 28, 2024 9:25 AM", "Open", "Jan 15, 2025"],
-    ["RDM Data Change Request Review", "Omega Biotech", 0, "Low", "Sarah Mitchell", "Dec 22, 2024 11:40 AM", "Pending Approval", "Jan 12, 2025"],
-    ["Recommend for Delete", "Robert Chen", 0, "High", "David Kowalski", "Dec 18, 2024 3:55 PM", "Completed", "Jan 10, 2025"],
-    ["Potential Match Review", "Vertex Analytics", 0, "Medium", "James Carter", "Oct 21, 2024 12:42 PM", "Open", "Jan 5, 2025"],
-    ["Data Change Request Review", "Vanguard Holdings", 0, "Low", "Emily Nguyen", "Sep 15, 2024 10:08 AM", "In Review", "Dec 30, 2024"],
-    ["Authoring", "ABC Group", 0, "Medium", "James Carter", "Jun 27, 2024 12:12 PM", "Inactive", "Dec 15, 2024"],
-  ],
-  totalTasks: 100,
+  // Inbox rows now come from queue.js (the one demo queue for the Inbox agent concept).
 
   // Entity profile where the reviewer starts (Figma: "Profile Page 01 — Reviewer Viewing",
   // node 1752:18350). The DCR above was already created; it waits in the Workflow panel.
@@ -141,8 +112,9 @@ window.DEMO = {
     // Workflow panel (Figma: Workflow Panel). The first request is the DCR reviewed in this prototype.
     workflow: {
       total: 18,
-      open: { createdBy: "vyacheslav.kovyazin", createdOn: "13/01/2025", step: "DCR Review", due: "31/01/2026",
-              form: { dueDate: "05/02/2026", priority: "High", assignedTo: "alexander.kirsanov" } },
+      // Due dates moved to the demo date (QUEUE.demoToday), where this DCR is due today.
+      open: { createdBy: "vyacheslav.kovyazin", createdOn: "13/01/2025", step: "DCR Review", due: "13/11/2026",
+              form: { dueDate: "13/11/2026", priority: "High", assignedTo: "alexander.kirsanov" } },
       priorities: ["Low", "Medium", "High"],
       // People the task can be assigned to (the current reviewer first; others are the team on this profile)
       users: ["alexander.kirsanov", "anita.raghavan", "david.okonkwo", "sofia.marchetti", "thomas.bergstrom", "priya.venkatesan"],
