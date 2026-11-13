@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent panel options · mock</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../design-system/tokens.css">
+  <style>
+    body { margin: 0; background: var(--surface-page); color: var(--text-body); font: var(--typography-body-md); }
+    .wrap { max-width: 1680px; margin: 0 auto; padding: var(--scale-800) var(--scale-600); }
+    h1 { margin: 0 0 var(--scale-200); font: var(--typography-heading-h3); color: var(--text-headings); }
+    h2 { margin: var(--scale-1000) 0 var(--scale-200); font: var(--typography-heading-h5); color: var(--text-headings); }
+    .lead { margin: 0; max-width: 72ch; }
+    .tag { display: inline-block; margin-left: var(--scale-200); padding: 0 var(--scale-200); border-radius: var(--radius-round); background: var(--surface-warning); color: var(--a11y-orange); font: var(--typography-body-xsm-semibold); vertical-align: middle; }
+    .row { display: flex; flex-wrap: wrap; gap: var(--scale-600); margin-top: var(--scale-500); align-items: flex-start; }
+    figure { margin: 0; }
+    figcaption { max-width: 792px; margin-top: var(--scale-300); }
+    figcaption strong { color: var(--text-headings); }
+    figcaption ul { margin: var(--scale-200) 0 0; padding-left: var(--scale-500); }
+    .frame { overflow: hidden; border: var(--border-width-sm) solid var(--border-default-light); border-radius: var(--radius-md); background: var(--surface-default); }
+    .frame iframe { border: 0; transform-origin: 0 0; display: block; }
+    .rec { color: var(--a11y-green); font: var(--typography-body-sm-semibold); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Inbox agent panel: three options <span class="tag">Mock · not built</span></h1>
+  <p class="lead">Each frame is the real Inbox at 1440 × 900, with a mock agent panel docked on the right, as decided (D3). The options differ only in how the agent's answers look. All copy and numbers are demo data from the queue. Styled with Build Design System tokens.</p>
+
+  <h2>The three options, showing the brief</h2>
+  <div class="row" id="options"></div>
+
+  <h2>Option A in its other two states</h2>
+  <div class="row" id="states"></div>
+</div>
+
+<script>
+  const AGENT_CSS = `
+  .ag-entry { display: inline-flex; align-items: center; gap: var(--scale-100); height: var(--scale-800); padding: 0 var(--scale-300); border-radius: var(--radius-round);
+    border: var(--border-width-sm) solid var(--border-action); background: var(--surface-action-hover-light); color: var(--a11y-brand); font: var(--typography-body-sm-semibold); }
+  .ag-entry .ico--ai path { fill: currentColor; }
+  .ag { flex: none; width: 360px; min-height: 0; display: flex; flex-direction: column; background: var(--surface-page); border-left: var(--border-width-sm) solid var(--border-default-light); }
+  .ag--tint { background: var(--color-purple-50); }
+  .ag__head { flex: none; display: flex; align-items: center; gap: var(--scale-200); height: 46px; padding: 0 var(--scale-200) 0 var(--scale-400); background: var(--surface-default); border-bottom: var(--border-width-sm) solid var(--border-default-light); }
+  .ag__mark { display: inline-flex; color: var(--a11y-brand); }
+  .ag__mark .ico--ai path, .ag-ai .ico--ai path, .ag-avatar .ico--ai path, .ag-rail .ico--ai path { fill: currentColor; }
+  .ag__title { margin: 0; font: var(--fig-type-14-semibold); color: var(--text-headings); }
+  .ag__tag { padding: 0 var(--scale-200); border: var(--border-width-sm) solid var(--border-default-light); border-radius: var(--radius-round); font: var(--typography-body-xsm); color: var(--app-muted-text); }
+  .ag__sp { flex: 1; }
+  .ag__scope { flex: none; margin: 0; padding: var(--scale-200) var(--scale-400); font: var(--typography-body-xsm); color: var(--app-muted-text); background: var(--surface-default); border-bottom: var(--border-width-sm) solid var(--border-default-light); }
+  .ag__thread { flex: 1; min-height: 0; overflow: auto; padding: var(--scale-400); display: flex; flex-direction: column; gap: var(--scale-400); }
+  .ag-card { display: flex; flex-direction: column; gap: var(--scale-300); padding: var(--scale-400); background: var(--surface-default); border: var(--border-width-sm) solid var(--border-default-light); border-radius: var(--radius-md); }
+  .ag-card__head { display: flex; align-items: center; gap: var(--scale-200); }
+  .ag-ai { display: inline-flex; align-items: center; gap: var(--scale-100); padding: var(--scale-50) var(--scale-200); border: 0; border-radius: var(--radius-round); background: var(--surface-action-hover-light); color: var(--a11y-brand); font: var(--typography-body-xsm-semibold); cursor: pointer; }
+  .ag-card__kind { font: var(--typography-body-xsm); color: var(--app-muted-text); }
+  .ag-card__title { margin: 0; font: var(--typography-body-md-semibold); color: var(--text-headings); }
+  .ag-facts { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: max-content 1fr; gap: var(--scale-200) var(--scale-300); align-items: baseline; }
+  .ag-fact { display: contents; }
+  .ag-fact__n { font: var(--typography-heading-h4); color: var(--text-headings); font-variant-numeric: tabular-nums; text-align: right; }
+  .ag-fact__t { font: var(--typography-body-sm); color: var(--text-body); text-wrap: pretty; }
+  .ag-fact__t b { display: block; font-weight: 600; color: var(--text-headings); }
+  .app-header > .ag-entry { margin-left: auto; }
+  .ag-actions { display: flex; flex-direction: column; gap: var(--scale-200); }
+  .ag-actions .btn { width: 100%; }
+  .ag__foot { flex: none; display: flex; flex-direction: column; gap: var(--scale-200); padding: var(--scale-300) var(--scale-400) var(--scale-400); background: var(--surface-default); border-top: var(--border-width-sm) solid var(--border-default-light); }
+  .ag-sugg { display: flex; flex-wrap: wrap; gap: var(--scale-200); }
+  .ag-chip { display: inline-flex; align-items: center; height: var(--pill-height); padding: 0 var(--pill-padding-x); border-radius: var(--pill-radius); border: var(--border-width-sm) solid var(--border-default-light); background: var(--surface-default); font: var(--typography-body-xsm); color: var(--text-body); cursor: pointer; }
+  /* C: chat bubbles */
+  .ag--bubbles .ag-card { flex-direction: row; align-items: flex-start; padding: 0; border: 0; background: none; }
+  .ag-avatar { flex: none; display: grid; place-items: center; width: var(--scale-800); height: var(--scale-800); border-radius: var(--radius-round); background: var(--surface-action-hover-light); color: var(--a11y-brand); }
+  .ag-bubble { display: flex; flex-direction: column; gap: var(--scale-300); padding: var(--scale-300) var(--scale-400); background: var(--surface-default); border-radius: var(--radius-lg); border-top-left-radius: var(--radius-sm); }
+  .ag--bubbles .ag-actions { flex-direction: row; flex-wrap: wrap; }
+  .ag-chip--act { border-color: var(--border-action); color: var(--app-action-text); font: var(--typography-body-xsm-semibold); }
+  /* Rail: shown while a task's review panel is open */
+  .panel { right: 56px; }
+  .ag-rail { flex: none; width: 56px; display: flex; flex-direction: column; align-items: center; gap: var(--scale-400); padding: var(--scale-300) 0; background: var(--surface-default); border-left: var(--border-width-sm) solid var(--border-default-light); }
+  .ag-rail__mark { display: grid; place-items: center; width: var(--scale-1000); height: var(--scale-1000); border: 0; border-radius: var(--radius-round); background: var(--surface-action-hover-light); color: var(--a11y-brand); }
+  .ag-rail__back { writing-mode: vertical-rl; transform: rotate(180deg); padding: var(--scale-400) var(--scale-200); border: var(--border-width-sm) solid var(--border-action); border-radius: var(--radius-round); background: var(--surface-default); color: var(--app-action-text); font: var(--typography-body-xsm-semibold); }
+  .ag-rail__dot { width: var(--scale-200); height: var(--scale-200); border-radius: var(--radius-round); background: var(--icon-warning); }
+  .ag-rail__state { writing-mode: vertical-rl; transform: rotate(180deg); font: var(--typography-body-xsm); color: var(--app-muted-text); }
+  /* Phone: bottom sheet */
+  .ag-scrim { position: fixed; inset: 0; z-index: 40; background: var(--fig-overlay); }
+  .ag--sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 41; width: auto; height: 86%; border-left: 0; border-radius: var(--radius-lg) var(--radius-lg) 0 0; overflow: hidden; box-shadow: var(--shadow-panel); }
+  .ag__grab { flex: none; width: var(--scale-1000); height: var(--scale-100); margin: var(--scale-200) auto; border-radius: var(--radius-round); background: var(--border-default); }
+  .proto-chip { display: none; }
+  `;
+
+  function brief(win, variant) {
+    const ai = (n) => win.icon("ai", n);
+    const facts = `
+      <ul class="ag-facts">
+        <li class="ag-fact"><span class="ag-fact__n">14</span><span class="ag-fact__t">new tasks</span></li>
+        <li class="ag-fact"><span class="ag-fact__n">2</span><span class="ag-fact__t">due today</span></li>
+        <li class="ag-fact"><span class="ag-fact__n">7</span><span class="ag-fact__t">DCRs only change a country code. <b>6 look routine, 1 needs review.</b></span></li>
+      </ul>`;
+    const label = `<button type="button" class="ag-ai" aria-label="AI-made. How this was made">${ai(12)}AI</button>`;
+    if (variant === "bubbles") return `
+      <article class="ag-card"><span class="ag-avatar" aria-hidden="true">${ai(16)}</span>
+        <div class="ag-bubble"><div class="ag-card__head">${label}<span class="ag-card__kind">Brief</span></div>
+          <p class="ag-card__title">Since yesterday</p>${facts}
+          <div class="ag-actions">
+            <button class="ag-chip ag-chip--act">Review the 2 due today</button>
+            <button class="ag-chip ag-chip--act">Handle the 7 together</button>
+            <button class="ag-chip ag-chip--act">Show all</button>
+          </div></div></article>`;
+    return `
+      <article class="ag-card"><div class="ag-card__head">${label}<span class="ag-card__kind">Brief</span></div>
+        <p class="ag-card__title">Since yesterday</p>${facts}
+        <div class="ag-actions">
+          <button class="btn btn--outline">Review the 2 due today</button>
+          <button class="btn btn--outline">Handle the 7 together</button>
+          <button class="btn btn--text">Show all</button>
+        </div></article>`;
+  }
+
+  function panel(win, variant, sheet) {
+    return `
+      ${sheet ? '<div class="ag__grab" aria-hidden="true"></div>' : ""}
+      <header class="ag__head"><span class="ag__mark" aria-hidden="true">${win.icon("ai", 18)}</span><h2 class="ag__title">Inbox agent</h2><span class="ag__tag">Concept</span>
+        <span class="ag__sp"></span>
+        <button class="btn btn--text">Activity</button>
+        <button class="icon-btn" aria-label="Close">${win.icon("close", 20)}</button></header>
+      <p class="ag__scope">I can read, sort and draft. You decide every approval.</p>
+      <div class="ag__thread">${brief(win, variant)}</div>
+      <div class="ag__foot">
+        <div class="ag-sugg"><button class="ag-chip">What should I look at first?</button><button class="ag-chip">Summarise the 5 address changes</button></div>
+        <form class="rail__input" onsubmit="return false"><input type="text" placeholder="Ask about your tasks" aria-label="Ask the Inbox agent"><button type="submit" class="send-btn" aria-label="Send">${win.icon("send", 14)}</button></form>
+      </div>`;
+  }
+
+  function mount(frame, cfg) {
+    const doc = frame.contentDocument, win = frame.contentWindow;
+    const st = doc.createElement("style"); st.textContent = AGENT_CSS; doc.head.appendChild(st);
+    const right = doc.querySelector(".app-header__right");
+    const entry = doc.createElement("button");
+    entry.className = "ag-entry"; entry.innerHTML = `${win.icon("ai", 14)}${cfg.phone ? "Agent" : "Inbox agent"}`;
+    if (cfg.phone) doc.querySelector(".app-header").appendChild(entry); // the header's right side is hidden on phones
+    else right.prepend(entry);
+    const body = doc.querySelector(".app-body");
+    if (cfg.state === "rail") {
+      win.APP.openTask("Yc4KbV19", { fieldId: "country" });
+      const rail = doc.createElement("aside");
+      rail.className = "ag-rail"; rail.setAttribute("aria-label", "Inbox agent");
+      rail.innerHTML = `<button class="ag-rail__mark" aria-label="Open Inbox agent">${win.icon("ai", 20)}</button>
+        <span class="ag-rail__dot" aria-hidden="true"></span><span class="ag-rail__state">Needs you</span>
+        <button class="ag-rail__back">Back to your plan · 6 ready</button>`;
+      body.appendChild(rail);
+      return;
+    }
+    const ag = doc.createElement("aside");
+    ag.className = `ag${cfg.variant === "tint" ? " ag--tint" : ""}${cfg.variant === "bubbles" ? " ag--bubbles" : ""}${cfg.phone ? " ag--sheet" : ""}`;
+    ag.setAttribute("aria-label", "Inbox agent");
+    ag.innerHTML = panel(win, cfg.variant, cfg.phone);
+    if (cfg.phone) { const s = doc.createElement("div"); s.className = "ag-scrim"; doc.body.append(s, ag); }
+    else body.appendChild(ag);
+    if (cfg.select) cfg.select.forEach((id) => doc.querySelector(`input[data-row="${id}"]`)?.click());
+  }
+
+  // ?only=A shows one frame at full size, for close review
+  const ONLY = new URLSearchParams(location.search).get("only");
+  if (ONLY) document.body.innerHTML = `<div id="options"></div><div id="states"></div>`;
+  function figure(parent, cfg) {
+    if (ONLY && cfg.id !== ONLY) return;
+    if (ONLY) { cfg = { ...cfg, scale: 1, caption: "" }; document.body.style.margin = "0"; }
+    const s = cfg.scale, fig = document.createElement("figure");
+    fig.innerHTML = `<div class="frame" style="width:${cfg.w * s}px;height:${cfg.h * s}px"><iframe title="${cfg.title}" src="../index.html?mock=${cfg.id}#inbox" width="${cfg.w}" height="${cfg.h}" style="transform:scale(${s})"></iframe></div>
+      <figcaption>${cfg.caption}</figcaption>`;
+    parent.appendChild(fig);
+    const f = fig.querySelector("iframe");
+    f.addEventListener("load", () => setTimeout(() => mount(f, cfg), 150));
+  }
+
+  const S = 0.55;
+  figure(document.querySelector("#options"), { id: "A", variant: "cards", w: 1440, h: 900, scale: S, title: "Option A",
+    select: ["Wm3ZpA58"],
+    caption: `<strong>A. Cards on a neutral panel</strong> <span class="rec">Recommended</span><ul>
+      <li>Each answer is a bordered card with an AI label that opens "How this was made". Buttons are DS outline buttons.</li>
+      <li>Reads as part of the Inbox, not a chat app. Plans and checklists fit a card naturally.</li>
+      <li>The AI label and the panel header carry the "this is the agent" signal, so it's quieter than B.</li></ul>` });
+  figure(document.querySelector("#options"), { id: "B", variant: "tint", w: 1440, h: 900, scale: S, title: "Option B",
+    select: ["Wm3ZpA58"],
+    caption: `<strong>B. Cards on a tinted panel</strong><ul>
+      <li>Same cards on a light purple panel (Purple 50), so agent content is unmistakable.</li>
+      <li>Risk: the Inbox already uses light purple for selected and open rows (one is selected here), so the tint competes with selection.</li></ul>` });
+  figure(document.querySelector("#options"), { id: "C", variant: "bubbles", w: 1440, h: 900, scale: S, title: "Option C",
+    caption: `<strong>C. Chat bubbles</strong><ul>
+      <li>Familiar chat: an agent avatar, answers in bubbles, actions as chips.</li>
+      <li>Risk: invites long replies; a 7-row plan or a confirmation naming every task is cramped in a bubble. Chips look lighter than real actions.</li></ul>` });
+  figure(document.querySelector("#states"), { id: "rail", variant: "cards", state: "rail", w: 1440, h: 900, scale: S, title: "Option A, rail",
+    caption: `<strong>Rail, while a task is open</strong><ul>
+      <li>The reviewer chose "Review these myself" on the flagged country-code DCR. The review panel opens on that field; the agent shrinks to a 56px rail beside it.</li>
+      <li>The rail keeps the run state and one way back: "Back to your plan · 6 ready".</li></ul>` });
+  figure(document.querySelector("#states"), { id: "phone", variant: "cards", phone: true, w: 375, h: 812, scale: 0.7, title: "Option A, phone",
+    caption: `<strong>Phone, below 900px</strong><ul>
+      <li>The agent opens as a bottom sheet over the Inbox. Its "Agent" button sits in the header, because the header's right-side icons are hidden on phones.</li>
+      <li>Same cards, one column.</li></ul>` });
+</script>
+</body>
+</html>

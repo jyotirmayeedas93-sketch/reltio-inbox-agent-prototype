@@ -1,6 +1,6 @@
 # Inbox agent prototype: build plan
 
-13 Nov 2026 · status: P0 and P1 done; P2 next
+13 Nov 2026 · status: P0 to P2 done; P3 next
 
 The Inbox agent is a **concept**: a scripted chat panel docked in the Reltio Inbox that helps a
 Data Steward Manager clear a batch of DCRs in one sitting. It prepares, explains and drafts; the
@@ -58,6 +58,9 @@ Settled unless Jyotirmayee changes them.
 | D22 | Reviewer | **alexander.kirsanov**, as in the repo and Figma. Task history reads "Approved by alexander.kirsanov with the Inbox agent". The handover's "Priya Nair" is not used | Q2, 13 Nov |
 | D23 | Demo queue | The queue in 5.2, as drafted | Q5, 13 Nov |
 | D24 | Country formats | Groton-Mystic keeps US → United States beside the 7 US → USA DCRs | Q3, 13 Nov |
+| D26 | Panel look | **Option A:** answers are bordered cards on the neutral page surface, each with an AI label that opens "How this was made"; DS outline buttons. Not tinted (clashes with selected rows), not chat bubbles. Mock: `mocks/agent-panel-options.html` | Mock review, 13 Nov |
+| D27 | Rail | While a review panel is open, the agent is a 56px rail: AI mark, run state, and a vertical "Back to your plan · N ready" button | Mock review, 13 Nov |
+| D28 | Size | Docked panel 360px; below 900px a bottom sheet opened from an "Agent" button in the header | Q9, 13 Nov |
 | D25 | Teammates | Added to the team as `maria` and `arjun.rao`, the repo's id style. Agent copy says "Maria" and "Arjun Rao". No surname invented for Maria | Q4, 13 Nov |
 
 ---
@@ -396,6 +399,31 @@ console errors.
 Gate: fallback works for any input; Tab order panel ↔ Inbox is clean; rail swap when the review
 panel opens.
 
+**Done, 13 Nov.** As built:
+
+- `agent.js` builds the panel into `<aside id="agent">` and keeps its state in `APP.state().agent`.
+  It talks to the Inbox only through `window.APP` (added: `closeTask`, `taskOpen`, `myTasks`,
+  `visibleTasks`, `isResolved`, `reviewer`) and listens for `app:panel` and `app:reset`.
+- Views: docked at 360px; rail (56px) while a review panel is open, back to the panel when it
+  closes; the rail's mark or the header button closes the task and brings the panel back (the full
+  panel and a review panel never share the screen). Under 900px: closed on load, a bottom sheet
+  with `role="dialog"`, the Inbox inert behind it, Esc or the scrim closes it.
+- Chat and Activity are DS tabs (arrow keys). Cards: AI label button toggles "How this was made";
+  kind, time, title, body, DS outline buttons. Your messages show right-aligned.
+- Intents in P2: `show-all`, `activity`, `matches` (D5), and the fallback with buttons for what the
+  build can do. Later phases add theirs to `agent-script.js`.
+- Run engine `AGENT.startRun({ title, items, step })`: one item per 700ms, per-item outcome
+  (applied, skipped, failed, not started), Stop finishes the current item, five states, ends in the
+  Activity log ("confirmed by alexander.kirsanov with the Inbox agent"). P3 drives it.
+- `window.AGENT` exposes `say, ask, runIntent, startRun, stopRun, open, close, state` for later
+  phases and checks.
+
+Checked in the browser: fallback and its buttons, show all, potential matches, AI label, a stopped
+run (2 applied, 1 skipped, 3 not started) and its log entry, focus kept on Stop, rail swap and
+return, close and reopen focus, tab arrows, Tab order, phone sheet (inert, Esc, scrim), Reset demo.
+Found and fixed: a disabled Stop button dropped keyboard focus (now `aria-disabled`); the rail's
+state label ignored `hidden`.
+
 ### P3 · Stage 2 (brief), 5A (approve together), the agent says no
 
 1. Brief on first open: 14 new, 2 due today, 7 look alike (6 routine, 1 needs review). Buttons:
@@ -474,6 +502,6 @@ checks are in the Review Flow doc. Note what changed.
 | Q6 | Urgent = due today or overdue (D16) | P3 | As drafted |
 | Q7 | 5B lands in the review panel, not the modal dialog (6.1) | P4 | As drafted |
 | Q8 | Add `checks/` with Playwright as a dev dependency (downloads a browser once) | P2 | Yes; the site itself still installs nothing |
-| Q9 | Agent panel width 360px; phone sheet below 900px | P2 | Mock both and show you first |
+| Q9 | Agent panel width 360px; phone sheet below 900px | P2 | **Answered:** as drafted, after the mock review (D26 to D28) |
 | Q10 | Stage 1: show anything at all (one urgent line in the Inbox), or leave it to the case study? | P5 | One line, only for an urgent task |
 | Q11 | Inbox filters sit in the sidebar, which the original hides below 1100px. On tablet and phone only the chips show | P2 | Leave as is; on small screens the agent's sheet is the way to filter |

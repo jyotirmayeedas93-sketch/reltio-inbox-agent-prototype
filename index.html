@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="design-system/tokens.css">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="agent.css">
 </head>
 <body>
   <a class="skip-link" id="skip-link" href="#profile-main">Skip to main content</a>
@@ -113,6 +114,8 @@
       <span data-icon="search" data-size="18"></span>
       <span class="search__placeholder">Quick search</span>
     </div>
+    <!-- Inbox agent (concept): opens and closes the docked panel -->
+    <button type="button" class="ag-entry" id="ag-toggle" aria-controls="agent" aria-expanded="false"><span data-icon="ai" data-size="14"></span>Inbox agent</button>
     <div class="app-header__right" aria-hidden="true">
       <span class="hdr-icon" data-icon="notifications" data-size="20"></span>
       <span class="hdr-icon" data-icon="apps" data-size="20"></span>
@@ -228,6 +231,10 @@
       <div class="ptab ptab--details" id="ptab-details" role="tabpanel" aria-labelledby="ptab-details-tab" tabindex="0" hidden></div>
       <div class="panel__actions" id="panel-actions"></div>
     </aside>
+
+    <!-- Inbox agent (concept): docked panel, rail while a task is open, bottom sheet on small screens. Built by agent.js -->
+    <aside class="ag" id="agent" aria-labelledby="ag-title" hidden></aside>
+    <div class="ag-scrim" id="ag-scrim" hidden></div>
   </div>
   </div><!-- /view-inbox -->
 
@@ -310,5 +317,7 @@
   <script src="data.js"></script>
   <script src="queue.js"></script>
   <script src="app.js"></script>
+  <script src="agent-script.js"></script>
+  <script src="agent.js"></script>
 </body>
 </html>

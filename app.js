@@ -335,11 +335,14 @@
     renderPanel();
     panel.hidden = false;
     renderInbox();
+    document.dispatchEvent(new CustomEvent("app:panel", { detail: { open: true, id } })); // the agent shrinks to its rail
     $("#panel-title").focus();
   }
   function closePanel({ focus = true } = {}) {
+    const was = !panel.hidden;
     panel.hidden = true;
     renderInbox();
+    if (was) document.dispatchEvent(new CustomEvent("app:panel", { detail: { open: false, id: state.current } }));
     if (focus) ($(`#open-${state.current}`) || $("#task-table")).focus();
   }
 
@@ -1900,6 +1903,7 @@
     state = freshState();
     panel.hidden = true; toast.hidden = true;
     renderInboxFilters(); renderInbox(); renderFilterForm(); renderWorkflow(); renderMode(); renderGrid();
+    document.dispatchEvent(new CustomEvent("app:reset")); // the agent starts over too
     (view === "profile" ? $('#wf-list [data-action="wf-review"]') : $("#task-rows .row-open")).focus();
   });
 
@@ -1918,6 +1922,12 @@
       const row = fieldId && panel.querySelector(`.chg[data-id="${fieldId}"]`);
       if (row) { scrollWithin($("#panel-changes"), row); flash(row); } // scroll the list only, never the page
     },
+    closeTask: () => closePanel({ focus: false }),
+    taskOpen: () => !panel.hidden,
+    myTasks: () => myTasks(),
+    visibleTasks: () => visibleTasks(),
+    isResolved: (t) => isResolved(t),
+    reviewer: () => QUEUE.reviewer,
     announce,
     render: () => renderInbox(),
   };

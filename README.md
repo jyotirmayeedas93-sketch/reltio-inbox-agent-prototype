@@ -4,7 +4,9 @@ A scripted, working prototype of the **Inbox agent**: a chat panel inside the Re
 
 > **This is a concept.** It isn't a Reltio product, and it isn't part of Reltio AgentFlow. All names and numbers are demo data. The agent is scripted: it recognises a set of buttons and phrases, each with a designed response. It covers DCRs only.
 
-**Status:** in progress. The build plan is in [PLAN.md](PLAN.md). The agent panel isn't built yet, so today this copy runs the Review DCR flow it's built on.
+**Status:** in progress. The build plan is in [PLAN.md](PLAN.md). The agent panel's frame is built; its brief, plans and the rest of the review journey come next.
+
+**Try the agent so far:** open the Inbox. The **Inbox agent** panel is docked on the right (on screens under 900px, open it from the **Inbox agent** button in the header; it comes up as a bottom sheet). Type anything: requests it doesn't know get "I can't do that in this demo yet" with buttons for what it can do. **Show all tasks** clears the Inbox filters. Each answer has an **AI** label; click it to see how the answer was made. Open any DCR and the agent shrinks to a slim rail beside the review panel; its mark brings the panel back. The **Activity** tab will list everything the agent runs.
 
 **Live demo:** not published yet.
 
@@ -85,6 +87,10 @@ styles.css                    styles, built from DS tokens (plus the "Figma laye
 icons.js                      DS Material icons exported from Figma
 data.js                       profile cards and Workflow requests, and the Figma DCR: 8 field changes, confidence levels, reasoning copy
 queue.js                      the one demo queue for the Inbox agent concept: 25 DCRs and 6 other tasks; every count derives from it
+agent-script.js               the agent's scripted brain: the phrases it recognises and its designed answers
+agent.js                      the agent panel: docked panel, rail, bottom sheet, cards, runs with Stop, Activity
+agent.css                     agent styles, from DS tokens only
+mocks/                        design mocks reviewed before building (open over a local server)
 app.js                        state, rendering, interactions (vanilla JS)
 design-system/tokens.json     every Build Design System token (W3C Design Tokens format)
 design-system/tokens.css      generated CSS custom properties
