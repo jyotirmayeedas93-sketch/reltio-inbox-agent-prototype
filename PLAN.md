@@ -1,6 +1,6 @@
 # Inbox agent prototype: build plan
 
-13 Nov 2026 · status: P0 to P2 done; P3 next
+13 Nov 2026 · status: P0 to P3 done; check with Jyotirmayee before P4
 
 The Inbox agent is a **concept**: a scripted chat panel docked in the Reltio Inbox that helps a
 Data Steward Manager clear a batch of DCRs in one sitting. It prepares, explains and drafts; the
@@ -61,6 +61,9 @@ Settled unless Jyotirmayee changes them.
 | D26 | Panel look | **Option A:** answers are bordered cards on the neutral page surface, each with an AI label that opens "How this was made"; DS outline buttons. Not tinted (clashes with selected rows), not chat bubbles. Mock: `mocks/agent-panel-options.html` | Mock review, 13 Nov |
 | D27 | Rail | While a review panel is open, the agent is a 56px rail: AI mark, run state, and a vertical "Back to your plan · N ready" button | Mock review, 13 Nov |
 | D28 | Size | Docked panel 360px; below 900px a bottom sheet opened from an "Agent" button in the header | Q9, 13 Nov |
+| D29 | Plan card | **Two groups:** "Ready to approve · N" (ticked, untick to leave out, Open per task) and "Needs your review · N" apart, tinted, with its reason, no tick box, and "Review this myself". Reject N and Approve N side by side at the same size. Mock: `mocks/plan-cards.html` | Mock review, 13 Nov |
+| D30 | Confirm and result | Confirmation names every task again, says "This is final. Approved changes can't be undone.", says each is rechecked; Go back or Approve N. The result is the run card done, with what's left (changed, flagged) as rows to open | Mock review, 13 Nov |
+| D31 | Says no | "Approve everything": "I won't approve everything in one go", the routine count in plans of at most 20, the flagged ones listed to open, a button per plan | Mock review, 13 Nov |
 | D25 | Teammates | Added to the team as `maria` and `arjun.rao`, the repo's id style. Agent copy says "Maria" and "Arjun Rao". No surname invented for Maria | Q4, 13 Nov |
 
 ---
@@ -437,6 +440,32 @@ state label ignored `hidden`.
 
 Gate: section 9 gates on this path. **Check with Jyotirmayee before P4.**
 
+**Done, 13 Nov.** As built, from `mocks/plan-cards.html` (D29 to D31):
+
+- Brief is the agent's first message, counted live from the queue: 14 new, 2 due today, 7 alike
+  (6 routine, 1 needs review). Buttons: Review the 2 due today · Handle the 7 together · Show all.
+  Not announced on page load; announced when asked for again ("What's new?").
+- "Review the 2 due today" filters the Inbox to due today and lists the 2 (flagged rows tinted,
+  each leading with its riskiest field).
+- Plan: two groups, live "N selected", Reject N and Approve N; untick keeps focus; Open or
+  "Review this myself" opens the task, the agent goes to the rail with "Back to your plan · N
+  ready", and Back returns focus to the plan. The Inbox filter shows the same group.
+- Confirm names every task in plan order; approve says it's final; reject needs a comment for the
+  requesters (no AI draft: the agent can't know why you reject). Pressing Reject before writing
+  one says so and moves to the comment box. Go back returns to the plan.
+- Run: `APP.decide(id, kind, comment)` rechecks each task just before applying. Failure modes,
+  driven by `script` flags in `queue.js`: Bluegate "changed since your plan" (its value becomes
+  U.S.A., Needs review), Tidewater "already resolved by Arjun Rao", Sterling fails once.
+- Result: run card done, counts, history note, and "Still yours to decide" rows (changed, failed,
+  flagged). Task history reads "Approved by alexander.kirsanov with the Inbox agent".
+- "Approve everything": declined; 22 routine in plans of 20 and 2; 3 flagged listed to open.
+
+Checked in the browser: every number above, untick and re-tick, review-myself round trip, confirm
+and go back, approve run (5 approved, 1 skipped), plan 1 of 2 (18 approved, 2 skipped), plan 2
+(1 approved, 1 failed), Inbox counts (31 → 11), Activity log, history line, reject with required
+comment, due today, Reset demo. Fixed on the way: plan order after re-ticking, a silent blocked
+Reject, and a flagged row's chip not matching its first field.
+
 ### P4 · Stage 3, 4, 5B, 5C, Stop
 
 1. Stage 3: triage order with one-line reasons; plain-words filter sets the Inbox filters
@@ -499,7 +528,7 @@ checks are in the Review Flow doc. Note what changed.
 | Q3 | US → United States beside US → USA | P1 | **Answered:** leave both (D24) |
 | Q4 | Maria and Arjun Rao | P1 | **Answered:** `maria`, `arjun.rao` (D25) |
 | Q5 | The queue in 5.2 | P1 | **Answered:** as drafted (D23) |
-| Q6 | Urgent = due today or overdue (D16) | P3 | As drafted |
+| Q6 | Urgent = due today or overdue (D16) | P3 | **Answered:** as drafted. Priority orders tasks but doesn't make them urgent |
 | Q7 | 5B lands in the review panel, not the modal dialog (6.1) | P4 | As drafted |
 | Q8 | Add `checks/` with Playwright as a dev dependency (downloads a browser once) | P2 | Yes; the site itself still installs nothing |
 | Q9 | Agent panel width 360px; phone sheet below 900px | P2 | **Answered:** as drafted, after the mock review (D26 to D28) |

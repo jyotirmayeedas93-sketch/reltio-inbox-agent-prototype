@@ -103,6 +103,9 @@
     names: { maria: "Maria", "arjun.rao": "Arjun Rao" },
     types: { dcr: "Data Change Request Review", pm: "Potential Match Review", auth: "Authoring", rdm: "RDM Data Change Request Review", rfd: "Recommend for Delete" },
     groups: { "country-code": "Country code US to USA", address: "Address changes", "spanish-address": "Spanish address tasks" },
+    // How the agent's brief and plans talk about each group
+    groupText: { "country-code": "only change a country code", address: "change an address", "spanish-address": "change a Spanish address" },
+    groupNoun: { "country-code": "country code change", address: "address change", "spanish-address": "Spanish address change" },
     tasks: [...dcrs, ...others],
   };
 })();

@@ -4,9 +4,15 @@ A scripted, working prototype of the **Inbox agent**: a chat panel inside the Re
 
 > **This is a concept.** It isn't a Reltio product, and it isn't part of Reltio AgentFlow. All names and numbers are demo data. The agent is scripted: it recognises a set of buttons and phrases, each with a designed response. It covers DCRs only.
 
-**Status:** in progress. The build plan is in [PLAN.md](PLAN.md). The agent panel's frame is built; its brief, plans and the rest of the review journey come next.
+**Status:** in progress. The build plan is in [PLAN.md](PLAN.md). Built so far: the brief, approving or rejecting similar changes together, and the agent saying no. Triage, summaries, single rejects, assigning and the wrap-up come next.
 
-**Try the agent so far:** open the Inbox. The **Inbox agent** panel is docked on the right (on screens under 900px, open it from the **Inbox agent** button in the header; it comes up as a bottom sheet). Type anything: requests it doesn't know get "I can't do that in this demo yet" with buttons for what it can do. **Show all tasks** clears the Inbox filters. Each answer has an **AI** label; click it to see how the answer was made. Open any DCR and the agent shrinks to a slim rail beside the review panel; its mark brings the panel back. The **Activity** tab will list everything the agent runs.
+**Try the agent so far (about 3 minutes):**
+1. Open the Inbox. The **Inbox agent** is docked on the right with its brief: 14 new, 2 due today, 7 that only change a country code. (Under 900px wide, open it from the **Inbox agent** button in the header; it comes up as a bottom sheet.)
+2. **Handle the 7 together.** The Inbox filters to those 7. The plan ticks the 6 routine ones and lists Lakeshore Credit Union apart, unticked, with its reason. Untick any to leave it out.
+3. **Review this myself** opens Lakeshore in the review panel; the agent shrinks to a rail with **Back to your plan**.
+4. **Approve 6.** The confirmation names all 6 and says it's final. Approve, and watch each one rechecked: Bluegate Supply Co is skipped because it changed since the plan. The result keeps Bluegate and Lakeshore as yours to decide, and everything is logged in **Activity**. Open an approved task's View DCR: "Approved by alexander.kirsanov with the Inbox agent".
+5. Type **approve everything**. The agent says no, offers the 22 routine changes in plans of 20 and 2, and lists the 3 that need your judgment. Running the plans shows the other failure modes: one task already resolved by Arjun Rao, one that fails.
+6. **Reject** works the same way and needs a comment for the requesters. Anything the demo doesn't know gets "I can't do that in this demo yet". Each answer's **AI** label shows how it was made. **Reset demo** starts over.
 
 **Live demo:** not published yet.
 

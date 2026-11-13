@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plan cards · mock</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../design-system/tokens.css">
+  <style>
+    body { margin: 0; background: var(--surface-page); color: var(--text-body); font: var(--typography-body-md); }
+    .wrap { max-width: 1680px; margin: 0 auto; padding: var(--scale-800) var(--scale-600); }
+    h1 { margin: 0 0 var(--scale-200); font: var(--typography-heading-h3); color: var(--text-headings); }
+    h2 { margin: var(--scale-1000) 0 var(--scale-200); font: var(--typography-heading-h5); color: var(--text-headings); }
+    .lead { margin: 0; max-width: 80ch; }
+    .tag { display: inline-block; margin-left: var(--scale-200); padding: 0 var(--scale-200); border-radius: var(--radius-round); background: var(--surface-warning); color: var(--a11y-orange); font: var(--typography-body-xsm-semibold); vertical-align: middle; }
+    .row { display: flex; flex-wrap: wrap; gap: var(--scale-600); margin-top: var(--scale-500); align-items: flex-start; }
+    figure { margin: 0; }
+    figcaption { margin-top: var(--scale-300); }
+    figcaption strong { color: var(--text-headings); }
+    figcaption ul { margin: var(--scale-200) 0 0; padding-left: var(--scale-500); }
+    .frame { position: relative; overflow: hidden; border: var(--border-width-sm) solid var(--border-default-light); border-radius: var(--radius-md); background: var(--surface-default); }
+    .frame iframe { position: absolute; top: 0; border: 0; transform-origin: 0 0; }
+    .rec { color: var(--a11y-green); font: var(--typography-body-sm-semibold); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Plan and confirmation cards <span class="tag">Mock · not built</span></h1>
+  <p class="lead">The reviewer clicked "Handle the 7 together" in the brief. Each frame is the real Inbox and the real agent panel (option A), with mock cards. The agent has set the Inbox filter to the 7 country code DCRs, so the list visibly changes. All names and numbers are demo data from the queue.</p>
+
+  <h2>Three ways to lay out the plan</h2>
+  <div class="row" id="options"></div>
+
+  <h2>Option A through the rest of the flow</h2>
+  <div class="row" id="states"></div>
+</div>
+
+<script>
+  const CARD_CSS = `
+  .proto-chip { display: none; }
+  .ag-meta { font: var(--typography-body-xsm); color: var(--app-muted-text); text-wrap: pretty; }
+  .ag-meta b { color: var(--text-headings); font-weight: 600; }
+  .ag-sec { display: flex; flex-direction: column; gap: var(--scale-200); }
+  .ag-sec__h { display: flex; align-items: baseline; justify-content: space-between; gap: var(--scale-200); font: var(--typography-body-sm-semibold); color: var(--text-headings); }
+  .ag-sec__note { font: var(--typography-body-xsm); color: var(--app-muted-text); }
+  .ag-items { list-style: none; margin: 0; padding: 0; border: var(--border-width-sm) solid var(--border-default-light); border-radius: var(--radius-md); overflow: hidden; }
+  .ag-item { display: grid; grid-template-columns: auto 1fr auto; gap: var(--scale-50) var(--scale-300); align-items: center; padding: var(--scale-200) var(--scale-300); border-bottom: var(--border-width-sm) solid var(--border-default-light); background: var(--surface-default); }
+  .ag-item:last-child { border-bottom: 0; }
+  .ag-item .cb { grid-row: span 2; }
+  .ag-item__name { font: var(--typography-body-sm-semibold); color: var(--text-headings); }
+  .ag-item__chg { grid-column: 2; font: var(--typography-body-xsm); color: var(--text-body); }
+  .ag-item__open { grid-row: 1 / span 2; grid-column: 3; font: var(--typography-body-xsm-semibold); }
+  .ag-item--flag { display: flex; flex-direction: column; align-items: flex-start; gap: var(--scale-100); background: var(--surface-warning); box-shadow: inset var(--border-width-lg) 0 0 var(--icon-warning); }
+  .ag-item__line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--scale-200); font: var(--typography-body-xsm); color: var(--text-body); }
+  .ag-item--flag .ag-item__open { align-self: flex-start; }
+  .ag-item__why { grid-column: 1 / -1; font: var(--typography-body-xsm); color: var(--text-body); text-wrap: pretty; }
+  .ag-item--flag .btn { grid-column: 1 / -1; justify-self: start; margin-top: var(--scale-100); }
+  .ag-item .conf { justify-self: end; }
+  .ag-decide { display: flex; gap: var(--scale-200); }
+  .ag-decide .btn { flex: 1; }
+  .ag-count { font: var(--typography-body-xsm); color: var(--app-muted-text); }
+  .ag-final { display: flex; gap: var(--scale-200); align-items: flex-start; padding: var(--scale-200) var(--scale-300); border-radius: var(--radius-md); background: var(--surface-error); color: var(--a11y-red); font: var(--typography-body-xsm-semibold); }
+  .ag-final .ico { flex: none; }
+  .ag-final span { text-wrap: balance; }
+  .ag-names { margin: 0; padding-left: var(--scale-500); font: var(--typography-body-sm); color: var(--text-headings); }
+  .ag-names li { padding: var(--scale-50) 0; }
+  .ag-names span { display: block; color: var(--app-muted-text); font: var(--typography-body-xsm); }
+  .ag-item__top { display: flex; align-self: stretch; justify-content: space-between; align-items: baseline; gap: var(--scale-200); }
+  .ag-note { font: var(--typography-body-xsm); color: var(--app-muted-text); text-wrap: pretty; }
+  .ag-follow { display: flex; flex-direction: column; gap: var(--scale-200); padding-top: var(--scale-200); border-top: var(--border-width-sm) solid var(--border-default-light); }
+  .is-flag-row td { background: var(--surface-warning) !important; }
+  .is-flag-row td.col-type { box-shadow: inset var(--border-width-lg) 0 0 var(--icon-warning); }
+  `;
+
+  // Mock data, read from the real queue inside each frame
+  function data(win) {
+    const T = win.APP.tasks().filter((t) => t.group === "country-code");
+    return { ready: T.filter((t) => t.fields.every((f) => f.confidence === "high")), flagged: T.filter((t) => t.fields.some((f) => f.confidence !== "high")) };
+  }
+  const head = (win, kind) => `<div class="ag-card__head"><button type="button" class="ag-ai" aria-expanded="false">${win.icon("ai", 12)}AI</button><span class="ag-card__kind">${kind}</span><span class="ag-card__time">9:14 AM</span></div>`;
+  const conf = (win, c, label) => `<span class="conf conf--${c}">${win.icon("ai", 12)}${label}</span>`;
+  const cb = (on) => `<label class="cb"><input type="checkbox" ${on ? "checked" : ""}><span class="cb__box" aria-hidden="true"></span></label>`;
+
+  function planA(win) {
+    const { ready, flagged } = data(win);
+    return `<article class="ag-card">${head(win, "Plan")}
+      <h3 class="ag-card__title">Country code US to USA: 7 tasks</h3>
+      <p class="ag-meta">Each changes only Country, from US to USA. <b>Approvals are final.</b> A plan holds up to 20 tasks.</p>
+      <div class="ag-sec"><p class="ag-sec__h"><span>Ready to approve · ${ready.length}</span><span class="ag-sec__note">Untick any to leave it out</span></p>
+        <ul class="ag-items">${ready.map((t) => `<li class="ag-item">${cb(true)}<span class="ag-item__name">${t.entity}</span><button class="link-btn ag-item__open">Open</button><span class="ag-item__chg">Country: US → USA</span></li>`).join("")}</ul></div>
+      <div class="ag-sec"><p class="ag-sec__h"><span>Needs your review · ${flagged.length}</span><span class="ag-sec__note">Not in this plan</span></p>
+        <ul class="ag-items">${flagged.map((t) => `<li class="ag-item ag-item--flag"><span class="ag-item__name">${t.entity}</span><span class="ag-item__line">${conf(win, "review", "Needs review")}<span>Country: US → USA</span></span><span class="ag-item__why">${t.fields[0].reasoning}</span><button class="btn btn--outline">Review this myself</button></li>`).join("")}</ul></div>
+      <p class="ag-count">${ready.length} selected</p>
+      <div class="ag-decide"><button class="btn btn--reject">Reject ${ready.length}</button><button class="btn btn--approve">Approve ${ready.length}</button></div>
+    </article>`;
+  }
+  function planB(win) {
+    const { ready, flagged } = data(win);
+    const all = win.APP.tasks().filter((t) => t.group === "country-code");
+    return `<article class="ag-card">${head(win, "Plan")}
+      <h3 class="ag-card__title">Country code US to USA: 7 tasks</h3>
+      <p class="ag-meta">${ready.length} ticked, ${flagged.length} flagged and left out. <b>Approvals are final.</b> A plan holds up to 20 tasks.</p>
+      <ul class="ag-items">${all.map((t) => flagged.includes(t)
+        ? `<li class="ag-item ag-item--flag"><span class="ag-item__name">${t.entity}</span><span class="ag-item__line">${conf(win, "review", "Needs review")}<span>Country: US → USA</span></span><span class="ag-item__why">${t.fields[0].reasoning}</span><button class="btn btn--outline">Review this myself</button></li>`
+        : `<li class="ag-item">${cb(true)}<span class="ag-item__name">${t.entity}</span>${conf(win, "high", "High confidence")}<span class="ag-item__chg">Country: US → USA</span></li>`).join("")}</ul>
+      <p class="ag-count">${ready.length} selected</p>
+      <div class="ag-decide"><button class="btn btn--reject">Reject ${ready.length}</button><button class="btn btn--approve">Approve ${ready.length}</button></div>
+    </article>`;
+  }
+  function planC(win) {
+    const { ready, flagged } = data(win);
+    return `<article class="ag-card">${head(win, "Plan")}
+      <h3 class="ag-card__title">Country code US to USA: 7 tasks</h3>
+      <p class="ag-card__body">I've ticked the ${ready.length} routine ones in your Inbox. ${flagged[0].entity} is highlighted and left unticked: ${flagged[0].fields[0].reasoning.charAt(0).toLowerCase() + flagged[0].fields[0].reasoning.slice(1)}</p>
+      <p class="ag-meta"><b>Approvals are final.</b> Untick rows in the list to leave them out.</p>
+      <div class="ag-decide"><button class="btn btn--reject">Reject ${ready.length}</button><button class="btn btn--approve">Approve ${ready.length}</button></div>
+      <button class="btn btn--text">Review it myself</button>
+    </article>`;
+  }
+  function confirmA(win) {
+    const { ready } = data(win);
+    return `<article class="ag-card">${head(win, "Confirm")}
+      <h3 class="ag-card__title">Approve these ${ready.length} changes?</h3>
+      <p class="ag-final">${win.icon("error_outline", 16)}<span>This is final. Approved changes can't be undone.</span></p>
+      <ol class="ag-names">${ready.map((t) => `<li>${t.entity}<span>Country: US → USA</span></li>`).join("")}</ol>
+      <p class="ag-note">I'll check each one again just before applying it and skip any that changed.</p>
+      <div class="ag-decide"><button class="btn btn--outline">Go back</button><button class="btn btn--approve">Approve ${ready.length}</button></div>
+    </article>`;
+  }
+  function resultA(win) {
+    const { ready, flagged } = data(win);
+    const items = ready.map((t) => t.script.changesMidRun
+      ? `<li class="ag-run__item is-skipped"><span class="ag-run__label">${t.entity}</span><span class="ag-run__outcome">Skipped: changed since your plan</span></li>`
+      : `<li class="ag-run__item is-applied"><span class="ag-run__label">${t.entity}</span><span class="ag-run__outcome">Approved</span></li>`).join("");
+    const skipped = ready.find((t) => t.script.changesMidRun);
+    return `<article class="ag-card">${head(win, "Run")}
+      <h3 class="ag-card__title">Approving ${ready.length} country code changes</h3>
+      <div class="ag-run ag-run--done"><p class="ag-run__state"><span class="ag-run__dot"></span><span>Done</span><span class="ag-run__count">${ready.length - 1} approved · 1 skipped</span></p>
+        <ol class="ag-run__items">${items}</ol></div>
+      <p class="ag-note">Each approved task's history reads "Approved by alexander.kirsanov with the Inbox agent". It's all in Activity.</p>
+      <div class="ag-follow"><p class="ag-sec__h"><span>Still yours to decide</span></p>
+        <ul class="ag-items">
+          <li class="ag-item ag-item--flag"><span class="ag-item__top"><span class="ag-item__name">${skipped.entity}</span><button class="link-btn">Open</button></span><span class="ag-item__line">Changed since your plan, so I didn't approve it</span></li>
+          <li class="ag-item ag-item--flag"><span class="ag-item__top"><span class="ag-item__name">${flagged[0].entity}</span><button class="link-btn">Open</button></span><span class="ag-item__line">Needs review: another source says CA</span></li>
+        </ul></div>
+    </article>`;
+  }
+  function refusalA(win) {
+    const T = win.APP.tasks().filter((t) => t.type === "dcr");
+    const flagged = T.filter((t) => t.fields.some((f) => f.confidence !== "high"));
+    const routine = T.length - flagged.length;
+    const why = (t) => t.fields.filter((f) => f.confidence !== "high").map((f) => `${f.label}: ${f.confidence === "review" ? "needs review" : "not enough signal"}`).join(" · ");
+    return `<article class="ag-card">${head(win, "Answer")}
+      <h3 class="ag-card__title">I won't approve everything in one go</h3>
+      <p class="ag-card__body">I can approve the ${routine} routine changes, in two plans because a plan holds 20 at most. ${flagged.length} need your judgment, so I'll open those for you instead.</p>
+      <div class="ag-sec"><p class="ag-sec__h"><span>Need your judgment · ${flagged.length}</span></p>
+        <ul class="ag-items">${flagged.map((t) => `<li class="ag-item ag-item--flag"><span class="ag-item__top"><span class="ag-item__name">${t.entity}</span><button class="link-btn">Open</button></span><span class="ag-item__line">${why(t)}</span></li>`).join("")}</ul></div>
+      <div class="ag-actions"><button class="btn btn--outline">Show plan 1 of 2 · 20 tasks</button><button class="btn btn--outline">Show plan 2 of 2 · 2 tasks</button></div>
+    </article>`;
+  }
+
+  function mount(frame, cfg) {
+    const doc = frame.contentDocument, win = frame.contentWindow;
+    const st = doc.createElement("style"); st.textContent = CARD_CSS; doc.head.appendChild(st);
+    if (cfg.filter) win.APP.setInboxFilters(cfg.filter);
+    const user = `<p class="ag-you">${cfg.said}</p>`;
+    doc.querySelector("#ag-thread").innerHTML = user + cfg.card(win);
+    if (cfg.tick) {
+      const { ready, flagged } = data(win);
+      ready.forEach((t) => doc.querySelector(`input[data-row="${t.id}"]`)?.click());
+      flagged.forEach((t) => doc.querySelector(`tr[data-task="${t.id}"]`)?.classList.add("is-flag-row"));
+    }
+    const th = doc.querySelector("#ag-thread"); th.scrollTop = 0;
+  }
+
+  // crop: how many px of the right side of the 1440px Inbox to show
+  const ONLY = new URLSearchParams(location.search).get("only");
+  if (ONLY) document.body.innerHTML = `<div id="options"></div><div id="states"></div>`;
+  function figure(parent, cfg) {
+    if (ONLY && cfg.id !== ONLY) return;
+    if (ONLY) { cfg = { ...cfg, scale: 1, caption: "" }; document.body.style.margin = "0"; parent = document.body; }
+    const s = cfg.scale, cw = cfg.crop * s, ch = 900 * s;
+    const fig = document.createElement("figure");
+    fig.innerHTML = `<div class="frame" style="width:${cw}px;height:${ch}px"><iframe title="${cfg.title}" src="../index.html?plan-mock=${cfg.id}#inbox" width="1440" height="900" style="left:${-(1440 - cfg.crop) * s}px;transform:scale(${s})"></iframe></div>
+      <figcaption style="max-width:${Math.max(cw, 380)}px">${cfg.caption}</figcaption>`;
+    parent.appendChild(fig);
+    const f = fig.querySelector("iframe");
+    f.addEventListener("load", () => setTimeout(() => mount(f, cfg), 200));
+  }
+
+  const F = { group: "country-code" };
+  const O = document.querySelector("#options"), S = document.querySelector("#states");
+  figure(O, { id: "A", title: "Option A", crop: 560, scale: 0.85, filter: F, said: "Handle the 7 together", card: planA,
+    caption: `<strong>A. Two groups: ready, and yours</strong> <span class="rec">Recommended</span><ul>
+      <li>The 6 routine tasks sit under "Ready to approve", ticked. The flagged one sits apart under "Needs your review", tinted, with its reason, and has no tick box at all.</li>
+      <li>Hardest to miss the outlier (guide 13). Reject 6 and Approve 6 are the same size, as in the review panel.</li></ul>` });
+  figure(O, { id: "B", title: "Option B", crop: 560, scale: 0.85, filter: F, said: "Handle the 7 together", card: planB,
+    caption: `<strong>B. One list, flag inline</strong><ul>
+      <li>All 7 in one list in Inbox order; the flagged row is tinted, unticked and explains itself.</li>
+      <li>Compact, but in a longer plan (up to 20) a flagged row in the middle is easier to scroll past, and names wrap beside the confidence chips.</li></ul>` });
+  figure(O, { id: "C", title: "Option C", crop: 1440, scale: 0.55, filter: F, tick: true, said: "Handle the 7 together", card: planC,
+    caption: `<strong>C. Plan lives in the Inbox list</strong><ul>
+      <li>The agent ticks the 6 rows in the table and highlights the flagged row; the card holds only the decision.</li>
+      <li>Uses the Inbox the reviewer knows, but the plan is split across two places, and the confirmation can't name tasks the reviewer has to scroll for.</li></ul>` });
+  figure(S, { id: "confirm", title: "Confirm", crop: 560, scale: 0.85, filter: F, said: "Approve 6", card: confirmA,
+    caption: `<strong>Confirmation</strong><ul><li>Names all 6 again, says it's final, and says each is rechecked. Go back or Approve 6.</li></ul>` });
+  figure(S, { id: "result", title: "Result", crop: 560, scale: 0.85, filter: F, said: "Approve 6", card: resultA,
+    caption: `<strong>Result</strong><ul><li>The run card, done: 5 approved, 1 skipped because it changed since the plan.</li><li>What's left is offered as next steps, never approved silently.</li></ul>` });
+  figure(S, { id: "refusal", title: "Refusal", crop: 560, scale: 0.85, said: "Approve everything", card: refusalA,
+    caption: `<strong>"Approve everything"</strong><ul><li>The agent says no to one button for everything: 22 routine changes in plans of 20 and 2, and the 3 flagged ones listed to open.</li></ul>` });
+</script>
+</body>
+</html>

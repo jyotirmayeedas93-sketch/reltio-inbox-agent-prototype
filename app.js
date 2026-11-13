@@ -567,7 +567,8 @@
   // History of the DCR reviewed in this prototype, built from what the reviewer did
   function ownHistory() {
     const r = state.resolved, me = user.reviewer;
-    const decided = { id: "s2", label: OUTCOME[r.kind], by: me, role: "Reviewer", at: r.at };
+    const by = r.by ? (QUEUE.names[r.by] || r.by) : r.via ? `${me} with the ${r.via}` : me; // "Approved by alexander.kirsanov with the Inbox agent"
+    const decided = { id: "s2", label: OUTCOME[r.kind], by, role: "Reviewer", at: r.at };
     const cm = state.comments.map((c) => ({ id: `o${c.id}`, stage: "s2", field: c.fieldId, by: me, at: c.at, kind: c.kind === "rejection" || c.kind === "request" ? "rejection" : "note", text: c.text }));
     const fields = state.fields.map((f) => {
       const ids = cm.filter((c) => c.field === f.id).map((c) => c.id);
@@ -1923,6 +1924,36 @@
       if (row) { scrollWithin($("#panel-changes"), row); flash(row); } // scroll the list only, never the page
     },
     closeTask: () => closePanel({ focus: false }),
+    // Approve or reject one DCR for the agent, after a recheck just before applying (task validators).
+    // Returns { outcome: "applied" | "skipped" | "failed", reason }. The demo's script flags drive the failure modes.
+    decide(id, kind, comment) {
+      const t = taskById(id), d = t && state.dcrs[id];
+      if (!d) return { outcome: "failed", reason: "Not a data change request" };
+      const name = (u) => QUEUE.names[u] || u;
+      if (d.resolved) return { outcome: "skipped", reason: d.resolved.by ? `Already resolved by ${name(d.resolved.by)}` : "Already decided" };
+      if (t.script.resolvedBy) {
+        d.resolved = { kind: "approved", applied: d.fields.length, rejected: 0, at: now(), by: t.script.resolvedBy };
+        renderInbox();
+        return { outcome: "skipped", reason: `Already resolved by ${name(t.script.resolvedBy)}` };
+      }
+      if (t.script.changesMidRun && !d.changed) {
+        d.changed = true; // the requester edited it after the plan was made: no longer format-only
+        Object.assign(d.fields[0], { proposed: "U.S.A.", value: "U.S.A.", confidence: "review", draftCopy: true,
+          reasoning: "The requester changed this after your plan. U.S.A. isn't a standard country code." });
+        renderInbox();
+        return { outcome: "skipped", reason: "Changed since your plan" };
+      }
+      if (t.script.failsMidRun && !d.failedOnce) { d.failedOnce = true; return { outcome: "failed", reason: "Couldn't be applied. Open it to try again" }; }
+      const keep = state.current;
+      state.current = id;
+      if (kind === "rejected") state.comments.push({ id: ++state.seq, fieldId: null, kind: "request", text: comment, at: now() });
+      state.resolved = { kind, applied: kind === "approved" ? state.fields.length : 0, rejected: kind === "rejected" ? state.fields.length : 0, at: now(), via: "Inbox agent" };
+      state.current = keep;
+      state.selected.delete(id);
+      if (!panel.hidden && state.current === id) closePanel({ focus: false });
+      renderInbox();
+      return { outcome: "applied" };
+    },
     taskOpen: () => !panel.hidden,
     myTasks: () => myTasks(),
     visibleTasks: () => visibleTasks(),
