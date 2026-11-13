@@ -1126,7 +1126,7 @@
     const sw = $("#switch-view");
     sw.textContent = view === "inbox" ? "Open Profile" : "Open Inbox";
     sw.setAttribute("href", view === "inbox" ? "#profile" : "#inbox");
-    document.title = view === "inbox" ? "Inbox — Review DCR prototype" : `${profile.entityName} · Profile — Review DCR prototype`;
+    document.title = view === "inbox" ? "Inbox · Inbox agent concept" : `${profile.entityName} · Profile · Inbox agent concept`;
     if (view === "inbox") renderInbox(); else renderWorkflow();
   }
   window.addEventListener("hashchange", () => showView(location.hash.slice(1)));

@@ -1,13 +1,26 @@
-# Review DCR: Working Prototype
+# Inbox agent: Concept Prototype
 
-A working, clickable prototype of the **Review DCR** experience from my Reltio Workflow case study. It shows the states between "approve" and "reject" that a static mockup can't. In it, a reviewer reads AI confidence signals and their reasoning, rejects a single field with feedback, watches the tally update, and resolves the request.
+A scripted, working prototype of the **Inbox agent**: a chat panel inside the Reltio Inbox that helps a Data Steward Manager clear a batch of data change requests (DCRs) in one sitting. The agent prepares, explains and drafts. The reviewer decides, and nothing final happens without their confirmation.
 
-**Live demo:** https://jyotirmayeedas93-sketch.github.io/reltio-review-dcr-prototype/
+> **This is a concept.** It isn't a Reltio product, and it isn't part of Reltio AgentFlow. All names and numbers are demo data. The agent is scripted: it recognises a set of buttons and phrases, each with a designed response. It covers DCRs only.
+
+**Status:** in progress. The build plan is in [PLAN.md](PLAN.md). The agent panel isn't built yet, so today this copy runs the Review DCR flow it's built on.
+
+**Live demo:** not published yet.
+
+## Built on the Review DCR prototype
+
+This repo is a copy of [reltio-review-dcr-prototype](https://github.com/jyotirmayeedas93-sketch/reltio-review-dcr-prototype) ([live demo](https://jyotirmayeedas93-sketch.github.io/reltio-review-dcr-prototype/)), with its full history. That prototype shows the **Review DCR** experience from my Reltio Workflow case study: a reviewer reads AI confidence signals and their reasoning, rejects a single field with feedback, watches the tally update, and resolves the request. The original repo is unchanged.
+
 **Case study:** [Reltio Workflow: Redesigning Review Experience](https://jyotirmayee-das-portfolio.framer.website/workflow-rework)
+
+The key design shift: in Review DCR, the AI is advisory and never acts. The Inbox agent acts, but only on the reviewer's confirmation. Confidence signals stay advisory.
+
+Everything below describes that base flow, which still works in this copy.
 
 ---
 
-## Try it (about 2 minutes)
+## Try the base flow (about 2 minutes)
 
 1. The reviewer starts on the **entity profile** of Groton-Mystic Falcons. The DCR has already been created, and it waits at the top of the **Workflow** panel with its due date, priority and assignee. Use the chevron to collapse or expand the card. **Due date** opens a date picker (arrow keys, Page Up/Down for months, Enter to pick, Esc to close). **Priority** offers Low, Medium and High, and the card's priority bar follows. **Assigned to** lists the team, with you selected. **Filter** (in place of Figma's "Add") opens a search plus filters for workflow type, status (open, closed, approved, rejected, sent for resubmission), priority, assignee, due date and created date. Search covers DCR IDs, the attributes and values inside each DCR, people and steps. **Apply** narrows the list, the active filters show as removable chips, and **Clear all** resets them. Only DCRs exist on this profile, so the other workflow types (Potential Match Review, Recommend for Delete, Authoring, RDM DCR Review, Custom) are listed but disabled. The panel's ✕ and the Workflow icon in the right rail close and reopen it.
 2. Close the Workflow panel and open the **Viewing** menu in the header. **Show more** on Organization Attributes reveals the profile's other attributes (Website URL, Email, Fax, Founded Year, Ownership, Description), and **Show less** hides them. The **Viewing** menu lists **Viewing**, **Suggesting** and **Editing**. Pick **Suggesting** and the profile becomes editable, as in Figma's Suggest Mode: Name, DBA name and the identifiers become fields, Company Type a dropdown, and nested values (Status, Address, Phone, Identifiers) get a delete icon. **+** adds another value, deleting an original value marks it **Deleted** with an undo, and **More attributes** is shown but not part of this prototype. **Cancel** and **Suggest** appear left of the menu. Suggest stays disabled until something changes. Suggest sends the changes as a data change request (the snack bar confirms it, and the profile itself doesn't change), and Cancel discards them. Both return to Viewing. **Editing** works the same way, except that its primary button is **Save**, which applies the changes to the profile straight away (Reset demo restores the original values).
@@ -102,4 +115,4 @@ AI-assisted ("vibe-coded") with Claude, working from the case study and the orig
 
 ---
 
-Built by Jyotirmayee Das · prototype, not production code · demo data only
+Built by Jyotirmayee Das · concept prototype, not production code · demo data only
